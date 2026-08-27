@@ -281,7 +281,7 @@ export class MarketDataService implements OnApplicationBootstrap {
     const result = await executor.execute(sql`
       SELECT DISTINCT ON (symbol) symbol, price
       FROM price_ticks
-      WHERE symbol = ANY(${symbols as string[]}::text[])
+      WHERE symbol IN (${sql.join(symbols.map((symbol) => sql`${symbol}`), sql`, `)})
         AND created_at <= ${at.toISOString()}::timestamptz
       ORDER BY symbol, created_at DESC, id DESC
     `);

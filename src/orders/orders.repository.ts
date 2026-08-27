@@ -246,6 +246,60 @@ export class OrdersRepository {
     };
   }
 
+  /**
+   * Position state for every traded symbol at one instant, in a single query.
+   *
+   * `DISTINCT ON` picks the newest fill per symbol using `fills_position_pit_idx`,
+   * so an N-asset portfolio costs one index scan rather than N round trips.
+   */
+  async loadPositionsAt(
+    executor: Executor,
+    userId: string,
+    at?: Date,
+  ): Promise<Map<string, PositionState>> {
+    const result = await executor.execute(sql`
+      SELECT DISTINCT ON (symbol)
+             symbol, post_quantity, post_avg_cost, post_realized_pnl
+      FROM fills
+      WHERE user_id = ${userId}::uuid
+        AND (${at ? at.toISOString() : null}::timestamptz IS NULL
+             OR created_at <= ${at ? at.toISOString() : null}::timestamptz)
+      ORDER BY symbol, created_at DESC, seq DESC
+    `);
+
+    const positions = new Map<string, PositionState>();
+    for (const row of result.rows as unknown as Array<{
+      symbol: string;
+      post_quantity: string;
+      post_avg_cost: string;
+      post_realized_pnl: string;
+    }>) {
+      positions.set(row.symbol, {
+        quantity: asBigInt(row.post_quantity),
+        avgCost: asBigInt(row.post_avg_cost),
+        realizedPnl: asBigInt(row.post_realized_pnl),
+      });
+    }
+    return positions;
+  }
+
+  /**
+   * Every fill up to an instant, oldest first.
+   *
+   * Only used by the verification path, which replays the whole history to prove
+   * the snapshot columns are right. Deliberately not on any hot path.
+   */
+  async listFillsUpTo(executor: Executor, userId: string, at?: Date): Promise<FillRecord[]> {
+    const result = await executor.execute(sql`
+      SELECT ${FILL_COLUMNS} FROM fills
+      WHERE user_id = ${userId}::uuid
+        AND (${at ? at.toISOString() : null}::timestamptz IS NULL
+             OR created_at <= ${at ? at.toISOString() : null}::timestamptz)
+      ORDER BY created_at ASC, seq ASC
+    `);
+    return result.rows.map(toFillRecord);
+  }
+
   /** Every symbol the user has ever traded, for portfolio reconstruction. */
   async listTradedSymbols(executor: Executor, userId: string, at?: Date): Promise<string[]> {
     const result = await executor.execute(sql`

@@ -11,6 +11,7 @@ import { AssetsModule } from './assets/assets.module';
 import { CalculatorModule } from './calculator/calculator.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
+import { PortfolioModule } from './portfolio/portfolio.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
@@ -32,6 +33,7 @@ import { HealthModule } from './health/health.module';
     CalculatorModule,
     RealtimeModule,
     OrdersModule,
+    PortfolioModule,
     AdminModule,
     HealthModule,
   ],
