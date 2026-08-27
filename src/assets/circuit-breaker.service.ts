@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { Subject, Subscription } from 'rxjs';
 import { sql } from 'drizzle-orm';
 import { APP_CONFIG, AppConfig } from '../config/configuration';

@@ -88,13 +88,7 @@ export const balances = pgTable('balances', {
 });
 
 export type LedgerEntryType =
-  | 'DEPOSIT'
-  | 'WITHDRAWAL'
-  | 'ORDER_RESERVE'
-  | 'ORDER_RELEASE'
-  | 'TRADE_BUY'
-  | 'TRADE_SELL'
-  | 'FEE';
+  'DEPOSIT' | 'WITHDRAWAL' | 'ORDER_RESERVE' | 'ORDER_RELEASE' | 'TRADE_BUY' | 'TRADE_SELL' | 'FEE';
 
 export const ledgerEntries = pgTable(
   'ledger_entries',
@@ -119,12 +113,7 @@ export const ledgerEntries = pgTable(
 export type OrderSide = 'BUY' | 'SELL';
 export type OrderType = 'MARKET' | 'LIMIT';
 export type TimeInForce = 'IOC' | 'GTC';
-export type OrderStatus =
-  | 'OPEN'
-  | 'PARTIALLY_FILLED'
-  | 'FILLED'
-  | 'CANCELLED'
-  | 'REJECTED';
+export type OrderStatus = 'OPEN' | 'PARTIALLY_FILLED' | 'FILLED' | 'CANCELLED' | 'REJECTED';
 
 export const orders = pgTable(
   'orders',

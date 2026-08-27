@@ -33,9 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<FastifyRequest>();
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const body = this.toErrorBody(exception, status);
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
@@ -67,7 +65,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         code: this.defaultCodeFor(status),
         message: Array.isArray(message) ? message.join('; ') : message,
         details:
-          typeof response === 'object' && response !== null && Array.isArray((response as { message?: unknown }).message)
+          typeof response === 'object' &&
+          response !== null &&
+          Array.isArray((response as { message?: unknown }).message)
             ? { issues: (response as { message: string[] }).message }
             : undefined,
       };

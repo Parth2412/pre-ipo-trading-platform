@@ -1,0 +1,2360 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "description": "Registers a trader and credits the configured welcome stablecoin balance.",
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokenDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_REGISTERED"
+          }
+        },
+        "summary": "Create an account",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokenDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          }
+        },
+        "summary": "Exchange credentials for a bearer token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Return the authenticated principal",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/assets": {
+      "get": {
+        "description": "Returns every listed asset with its live mark, top of book and breaker state.",
+        "operationId": "AssetsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssetDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the tradable universe",
+        "tags": [
+          "Market Data"
+        ]
+      }
+    },
+    "/assets/{symbol}": {
+      "get": {
+        "operationId": "AssetsController_detail",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ASSET_NOT_FOUND"
+          }
+        },
+        "summary": "Fetch one asset with its current order book",
+        "tags": [
+          "Market Data"
+        ]
+      }
+    },
+    "/assets/{symbol}/history": {
+      "get": {
+        "description": "Returns simulated ticks oldest-first. Bound the range with `from`/`to`; `limit` selects the most recent N points inside that range.",
+        "operationId": "AssetsController_history",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 lower bound (inclusive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 upper bound (inclusive).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 200,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceHistoryDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Price history for an asset",
+        "tags": [
+          "Market Data"
+        ]
+      }
+    },
+    "/assets/{symbol}/book": {
+      "get": {
+        "description": "Resting user limit orders merged with synthetic market-maker depth.",
+        "operationId": "AssetsController_book",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          },
+          {
+            "name": "depth",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderBookDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Aggregated order book",
+        "tags": [
+          "Market Data"
+        ]
+      }
+    },
+    "/calculator": {
+      "post": {
+        "description": "Converts a USD amount into shares (or a share quantity into USD) by walking the same book the matching engine walks. Reserves nothing and writes nothing.",
+        "operationId": "CalculatorController_quote",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculatorRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalculatorResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED"
+          },
+          "404": {
+            "description": "ASSET_NOT_FOUND"
+          }
+        },
+        "summary": "Preview an order without placing it",
+        "tags": [
+          "Calculator"
+        ]
+      }
+    },
+    "/orders": {
+      "post": {
+        "description": "Market and limit orders, with partial fills. A GTC limit remainder rests on the book with its funds or shares reserved; an IOC remainder is cancelled and the reservation released.",
+        "operationId": "OrdersController_place",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique per order — a UUID is ideal. Replaying a key returns the original response instead of placing a second order.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED / IDEMPOTENCY_KEY_REQUIRED"
+          },
+          "409": {
+            "description": "IDEMPOTENT_REQUEST_IN_FLIGHT"
+          },
+          "422": {
+            "description": "INSUFFICIENT_FUNDS / INSUFFICIENT_SHARES / NO_LIQUIDITY"
+          },
+          "423": {
+            "description": "CIRCUIT_BREAKER_TRIPPED / MARKET_HALTED"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Place an order",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "get": {
+        "operationId": "OrdersController_list",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "OPEN",
+                "PARTIALLY_FILLED",
+                "FILLED",
+                "CANCELLED",
+                "REJECTED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrderDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List your orders, newest first",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/orders/trades": {
+      "get": {
+        "description": "Every fill, with the position, cost basis and realised P&L that followed it.",
+        "operationId": "OrdersController_trades",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TradeDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List your executions",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "operationId": "OrdersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ORDER_NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch one order with its fills",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "delete": {
+        "description": "Releases the unfilled reservation. Filled quantity is unaffected.",
+        "operationId": "OrdersController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ORDER_NOT_FOUND"
+          },
+          "409": {
+            "description": "ORDER_NOT_CANCELLABLE"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel a resting order",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/portfolio": {
+      "get": {
+        "description": "Holdings with weighted-average cost basis, mark-to-market value, and realised and unrealised P&L, plus cash and account-level totals.",
+        "operationId": "PortfolioController_get",
+        "parameters": [
+          {
+            "name": "verify",
+            "required": false,
+            "in": "query",
+            "description": "Also recompute from the raw ledger and report any drift.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current portfolio",
+        "tags": [
+          "Portfolio"
+        ]
+      }
+    },
+    "/portfolio/history": {
+      "get": {
+        "description": "Rebuilds holdings, cost basis and P&L exactly as they stood at `at`, valued at the prices that were actually printed then. Reads the running balance carried on the newest ledger entry and the position snapshot carried on the newest fill at or before that instant, so the cost is three index seeks rather than a replay of the account history. Pass `verify=true` to also recompute the whole thing from raw ledger deltas and report any drift.",
+        "operationId": "PortfolioController_history",
+        "parameters": [
+          {
+            "name": "verify",
+            "required": false,
+            "in": "query",
+            "description": "Also recompute from the raw ledger and report any drift.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "at",
+            "required": true,
+            "in": "query",
+            "description": "ISO-8601 instant to reconstruct the portfolio at.",
+            "schema": {
+              "example": "2026-08-27T12:00:00.000Z",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED — `at` missing, malformed or in the future"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reconstruct the portfolio at a past instant",
+        "tags": [
+          "Portfolio"
+        ]
+      }
+    },
+    "/portfolio/timeline": {
+      "get": {
+        "description": "Point-in-time reconstruction sampled across a window. Affordable only because each point is an index seek rather than a history replay.",
+        "operationId": "PortfolioController_timeline",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 start. Defaults to the account’s first activity.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 end. Defaults to now.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "points",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 2,
+              "maximum": 200,
+              "default": 24,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquityCurveDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Equity curve",
+        "tags": [
+          "Portfolio"
+        ]
+      }
+    },
+    "/portfolio/ledger": {
+      "get": {
+        "description": "The raw double-entry ledger behind every balance, newest first.",
+        "operationId": "PortfolioController_ledger",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LedgerEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Account statement",
+        "tags": [
+          "Portfolio"
+        ]
+      }
+    },
+    "/admin/assets/{symbol}/halt": {
+      "post": {
+        "description": "Rejects new orders with MARKET_HALTED until resumed. Resting orders are left in place and may still be cancelled. Unlike the circuit breaker, a halt never clears on its own.",
+        "operationId": "AdminController_halt",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketControlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketControlResultDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Halt trading in an asset",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/assets/{symbol}/resume": {
+      "post": {
+        "operationId": "AdminController_resume",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarketControlDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketControlResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resume trading in a halted asset",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/admin/assets/{symbol}/price": {
+      "post": {
+        "description": "Simulation control. Prints a price outside the random walk so volatility-driven behaviour — the circuit breaker in particular — can be demonstrated on demand.",
+        "operationId": "AdminController_shock",
+        "parameters": [
+          {
+            "name": "symbol",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "vSOL",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PriceShockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceShockResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish an out-of-band mark price",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Liveness and database readiness probe",
+        "tags": [
+          "System"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Pre-IPO Trading Platform API",
+    "description": "Trade tokenized shares of fictional pre-IPO companies against a stablecoin balance.\n\n**Money formatting** — prices, quantities and cash are returned as decimal *strings*\nto avoid IEEE-754 rounding on the client. Send them the same way.\n\n**Errors** — every failure returns\n`{ \"error\": { \"code\", \"message\", \"details\" }, \"path\", \"timestamp\" }`.\nSwitch on `error.code`, never on the message.\n\n**Idempotency** — `POST /orders` requires an `Idempotency-Key` header. Replaying a key\nreturns the original response instead of placing a second order.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Registration and token issuance"
+    },
+    {
+      "name": "Market Data",
+      "description": "Assets, live prices and price history"
+    },
+    {
+      "name": "Calculator",
+      "description": "Side-effect-free order sizing"
+    },
+    {
+      "name": "Orders",
+      "description": "Order placement, cancellation and executions"
+    },
+    {
+      "name": "Portfolio",
+      "description": "Holdings, cost basis, P&L and point-in-time reconstruction"
+    },
+    {
+      "name": "Admin",
+      "description": "Market halt and resume controls"
+    },
+    {
+      "name": "System",
+      "description": "Health checks"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "trader@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "Password123!",
+            "minLength": 8
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Ada Lovelace"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AuthUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "role"
+        ]
+      },
+      "AuthTokenDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Bearer token. Send as `Authorization: Bearer <token>`."
+          },
+          "expiresIn": {
+            "type": "string",
+            "example": "12h"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthUserDto"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "user"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "alice@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "Password123!"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "PriceStatsDto": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "string",
+            "example": "420.000000"
+          },
+          "high": {
+            "type": "string",
+            "example": "441.230000"
+          },
+          "low": {
+            "type": "string",
+            "example": "405.110000"
+          },
+          "last": {
+            "type": "string",
+            "example": "432.900000"
+          },
+          "changeBps": {
+            "type": "number",
+            "example": 307,
+            "description": "Change from open, in basis points."
+          },
+          "ticks": {
+            "type": "number",
+            "example": 864
+          }
+        },
+        "required": [
+          "open",
+          "high",
+          "low",
+          "last",
+          "changeBps",
+          "ticks"
+        ]
+      },
+      "CircuitBreakerDto": {
+        "type": "object",
+        "properties": {
+          "tripped": {
+            "type": "boolean",
+            "description": "True while new orders on this asset are being rejected."
+          },
+          "moveBps": {
+            "type": "number",
+            "description": "Largest peak-to-trough move observed in the rolling window, in bps."
+          },
+          "thresholdBps": {
+            "type": "number",
+            "example": 1500
+          },
+          "windowMs": {
+            "type": "number",
+            "example": 60000
+          },
+          "resumesAt": {
+            "type": "object",
+            "description": "When trading resumes. Null while the breaker is idle."
+          }
+        },
+        "required": [
+          "tripped",
+          "moveBps",
+          "thresholdBps",
+          "windowMs"
+        ]
+      },
+      "AssetDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "name": {
+            "type": "string",
+            "example": "Solace AI"
+          },
+          "sector": {
+            "type": "string",
+            "example": "Artificial Intelligence"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "HALTED"
+            ]
+          },
+          "price": {
+            "type": "string",
+            "example": "420.000000",
+            "description": "Last simulated mark price."
+          },
+          "bid": {
+            "type": "string",
+            "example": "419.750000",
+            "description": "Best bid across user and synthetic liquidity."
+          },
+          "ask": {
+            "type": "string",
+            "example": "420.250000",
+            "description": "Best ask across user and synthetic liquidity."
+          },
+          "spreadBps": {
+            "type": "number",
+            "example": 12,
+            "description": "Quoted spread in basis points."
+          },
+          "tickSize": {
+            "type": "string",
+            "example": "0.010000"
+          },
+          "lotSize": {
+            "type": "string",
+            "example": "0.00001000"
+          },
+          "minOrderNotional": {
+            "type": "string",
+            "example": "1.000000"
+          },
+          "annualVolBps": {
+            "type": "number",
+            "example": 7000,
+            "description": "Annualised volatility used by the price process, in bps."
+          },
+          "stats24h": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PriceStatsDto"
+              }
+            ]
+          },
+          "circuitBreaker": {
+            "$ref": "#/components/schemas/CircuitBreakerDto"
+          },
+          "asOf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "sector",
+          "description",
+          "status",
+          "price",
+          "bid",
+          "ask",
+          "spreadBps",
+          "tickSize",
+          "lotSize",
+          "minOrderNotional",
+          "annualVolBps",
+          "circuitBreaker",
+          "asOf"
+        ]
+      },
+      "BookLevelDto": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "string",
+            "example": "420.250000"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "59.51000000"
+          },
+          "notional": {
+            "type": "string",
+            "example": "25000.000000"
+          }
+        },
+        "required": [
+          "price",
+          "quantity",
+          "notional"
+        ]
+      },
+      "OrderBookDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "mid": {
+            "type": "string",
+            "example": "420.000000"
+          },
+          "bids": {
+            "description": "Highest price first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookLevelDto"
+            }
+          },
+          "asks": {
+            "description": "Lowest price first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookLevelDto"
+            }
+          },
+          "asOf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "mid",
+          "bids",
+          "asks",
+          "asOf"
+        ]
+      },
+      "AssetDetailDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "name": {
+            "type": "string",
+            "example": "Solace AI"
+          },
+          "sector": {
+            "type": "string",
+            "example": "Artificial Intelligence"
+          },
+          "description": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "HALTED"
+            ]
+          },
+          "price": {
+            "type": "string",
+            "example": "420.000000",
+            "description": "Last simulated mark price."
+          },
+          "bid": {
+            "type": "string",
+            "example": "419.750000",
+            "description": "Best bid across user and synthetic liquidity."
+          },
+          "ask": {
+            "type": "string",
+            "example": "420.250000",
+            "description": "Best ask across user and synthetic liquidity."
+          },
+          "spreadBps": {
+            "type": "number",
+            "example": 12,
+            "description": "Quoted spread in basis points."
+          },
+          "tickSize": {
+            "type": "string",
+            "example": "0.010000"
+          },
+          "lotSize": {
+            "type": "string",
+            "example": "0.00001000"
+          },
+          "minOrderNotional": {
+            "type": "string",
+            "example": "1.000000"
+          },
+          "annualVolBps": {
+            "type": "number",
+            "example": 7000,
+            "description": "Annualised volatility used by the price process, in bps."
+          },
+          "stats24h": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PriceStatsDto"
+              }
+            ]
+          },
+          "circuitBreaker": {
+            "$ref": "#/components/schemas/CircuitBreakerDto"
+          },
+          "asOf": {
+            "type": "string"
+          },
+          "book": {
+            "$ref": "#/components/schemas/OrderBookDto"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "sector",
+          "description",
+          "status",
+          "price",
+          "bid",
+          "ask",
+          "spreadBps",
+          "tickSize",
+          "lotSize",
+          "minOrderNotional",
+          "annualVolBps",
+          "circuitBreaker",
+          "asOf",
+          "book"
+        ]
+      },
+      "PricePointDto": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "string",
+            "example": "420.000000"
+          },
+          "at": {
+            "type": "string",
+            "example": "2026-08-27T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "price",
+          "at"
+        ]
+      },
+      "PriceHistoryDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "points": {
+            "description": "Oldest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PricePointDto"
+            }
+          },
+          "count": {
+            "type": "number",
+            "example": 240
+          }
+        },
+        "required": [
+          "symbol",
+          "points",
+          "count"
+        ]
+      },
+      "CalculatorRequestDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ],
+            "default": "BUY"
+          },
+          "usdAmount": {
+            "type": "string",
+            "example": "5000.00",
+            "description": "USD to spend (BUY) or to raise (SELL). Mutually exclusive with `quantity`."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "12.5",
+            "description": "Share quantity to price. Mutually exclusive with `usdAmount`."
+          },
+          "limitPrice": {
+            "type": "string",
+            "example": "415.00",
+            "description": "Price the quote a limit order instead of a sweep of the book."
+          }
+        },
+        "required": [
+          "symbol"
+        ]
+      },
+      "CalculatorLevelDto": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "string",
+            "example": "420.250000"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "8.20000000"
+          },
+          "notional": {
+            "type": "string",
+            "example": "3446.050000"
+          }
+        },
+        "required": [
+          "price",
+          "quantity",
+          "notional"
+        ]
+      },
+      "CalculatorResponseDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "NOTIONAL",
+              "QUANTITY"
+            ],
+            "description": "NOTIONAL when priced from `usdAmount`, QUANTITY when priced from `quantity`."
+          },
+          "referencePrice": {
+            "type": "string",
+            "example": "420.000000",
+            "description": "Mid mark at the time of the quote."
+          },
+          "quantity": {
+            "type": "string",
+            "example": "11.83000000",
+            "description": "Shares obtainable, floored to the lot size."
+          },
+          "grossNotional": {
+            "type": "string",
+            "example": "4972.560000",
+            "description": "Notional before fees."
+          },
+          "feeBps": {
+            "type": "number",
+            "example": 10
+          },
+          "fee": {
+            "type": "string",
+            "example": "4.972560"
+          },
+          "netCash": {
+            "type": "string",
+            "example": "4977.532560",
+            "description": "Cash debited on a BUY, or credited on a SELL, after fees."
+          },
+          "effectivePrice": {
+            "type": "string",
+            "example": "420.250000",
+            "description": "Volume-weighted price across consumed levels."
+          },
+          "slippageBps": {
+            "type": "number",
+            "example": 6,
+            "description": "Effective price versus reference price, in bps."
+          },
+          "fillable": {
+            "type": "boolean",
+            "description": "False when the book could not absorb the full request."
+          },
+          "levels": {
+            "description": "Book levels the order would consume.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalculatorLevelDto"
+            }
+          },
+          "warnings": {
+            "example": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "asOf": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "mode",
+          "referencePrice",
+          "quantity",
+          "grossNotional",
+          "feeBps",
+          "fee",
+          "netCash",
+          "effectivePrice",
+          "slippageBps",
+          "fillable",
+          "levels",
+          "warnings",
+          "asOf"
+        ]
+      },
+      "PlaceOrderDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "MARKET",
+              "LIMIT"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "12.5",
+            "description": "Share quantity. Required for LIMIT orders and for every SELL."
+          },
+          "usdAmount": {
+            "type": "string",
+            "example": "5000.00",
+            "description": "USD to spend. MARKET BUY only; mutually exclusive with `quantity`."
+          },
+          "limitPrice": {
+            "type": "string",
+            "example": "415.00",
+            "description": "Required for LIMIT orders."
+          },
+          "timeInForce": {
+            "type": "string",
+            "enum": [
+              "IOC",
+              "GTC"
+            ],
+            "description": "Defaults to IOC for MARKET orders and GTC for LIMIT orders. A GTC remainder rests on the book; an IOC remainder is cancelled immediately."
+          }
+        },
+        "required": [
+          "symbol",
+          "side",
+          "type"
+        ]
+      },
+      "FillDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2.50000000"
+          },
+          "price": {
+            "type": "string",
+            "example": "420.250000"
+          },
+          "notional": {
+            "type": "string",
+            "example": "1050.625000"
+          },
+          "fee": {
+            "type": "string",
+            "example": "1.050625"
+          },
+          "liquidityRole": {
+            "type": "string",
+            "enum": [
+              "TAKER",
+              "MAKER"
+            ]
+          },
+          "counterpartyType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SYNTHETIC"
+            ],
+            "description": "USER when matched against another trader, SYNTHETIC against market-maker depth."
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "quantity",
+          "price",
+          "notional",
+          "fee",
+          "liquidityRole",
+          "counterpartyType",
+          "at"
+        ]
+      },
+      "OrderDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "MARKET",
+              "LIMIT"
+            ]
+          },
+          "timeInForce": {
+            "type": "string",
+            "enum": [
+              "IOC",
+              "GTC"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "PARTIALLY_FILLED",
+              "FILLED",
+              "CANCELLED",
+              "REJECTED"
+            ],
+            "description": "OPEN and PARTIALLY_FILLED still have quantity working on the book. FILLED and CANCELLED are terminal."
+          },
+          "limitPrice": {
+            "type": "object",
+            "nullable": true,
+            "example": "415.000000"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "12.50000000"
+          },
+          "filledQuantity": {
+            "type": "string",
+            "example": "8.00000000"
+          },
+          "remainingQuantity": {
+            "type": "string",
+            "example": "4.50000000"
+          },
+          "averageFillPrice": {
+            "type": "string",
+            "example": "420.250000",
+            "description": "Volume-weighted average fill price."
+          },
+          "filledNotional": {
+            "type": "string",
+            "example": "3362.000000"
+          },
+          "feesPaid": {
+            "type": "string",
+            "example": "3.362000"
+          },
+          "reservedCash": {
+            "type": "string",
+            "example": "1875.000000",
+            "description": "Cash still earmarked for this order."
+          },
+          "reservedQuantity": {
+            "type": "string",
+            "example": "0.00000000",
+            "description": "Shares still earmarked for this order."
+          },
+          "rejectReason": {
+            "type": "object",
+            "nullable": true
+          },
+          "fills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FillDto"
+            }
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "symbol",
+          "side",
+          "type",
+          "timeInForce",
+          "status",
+          "limitPrice",
+          "quantity",
+          "filledQuantity",
+          "remainingQuantity",
+          "averageFillPrice",
+          "filledNotional",
+          "feesPaid",
+          "reservedCash",
+          "reservedQuantity",
+          "rejectReason",
+          "fills",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TradeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2.50000000"
+          },
+          "price": {
+            "type": "string",
+            "example": "420.250000"
+          },
+          "notional": {
+            "type": "string",
+            "example": "1050.625000"
+          },
+          "fee": {
+            "type": "string",
+            "example": "1.050625"
+          },
+          "liquidityRole": {
+            "type": "string",
+            "enum": [
+              "TAKER",
+              "MAKER"
+            ]
+          },
+          "counterpartyType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "SYNTHETIC"
+            ],
+            "description": "USER when matched against another trader, SYNTHETIC against market-maker depth."
+          },
+          "at": {
+            "type": "string"
+          },
+          "orderId": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "positionAfter": {
+            "type": "string",
+            "example": "10.00000000",
+            "description": "Position size after this fill."
+          },
+          "averageCostAfter": {
+            "type": "string",
+            "example": "418.200000",
+            "description": "Average cost after this fill."
+          },
+          "realizedPnlAfter": {
+            "type": "string",
+            "example": "125.500000",
+            "description": "Cumulative realised P&L after this fill."
+          }
+        },
+        "required": [
+          "id",
+          "quantity",
+          "price",
+          "notional",
+          "fee",
+          "liquidityRole",
+          "counterpartyType",
+          "at",
+          "orderId",
+          "symbol",
+          "side",
+          "positionAfter",
+          "averageCostAfter",
+          "realizedPnlAfter"
+        ]
+      },
+      "CashDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "string",
+            "example": "223343.240784",
+            "description": "Spendable stablecoin."
+          },
+          "reserved": {
+            "type": "string",
+            "example": "1251.250000",
+            "description": "Earmarked for resting BUY orders."
+          },
+          "total": {
+            "type": "string",
+            "example": "224594.490784"
+          }
+        },
+        "required": [
+          "available",
+          "reserved",
+          "total"
+        ]
+      },
+      "HoldingDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "name": {
+            "type": "string",
+            "example": "Solace AI"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "45.66966000",
+            "description": "Total shares held, reserved included."
+          },
+          "availableQuantity": {
+            "type": "string",
+            "example": "40.66966000",
+            "description": "Freely sellable shares."
+          },
+          "reservedQuantity": {
+            "type": "string",
+            "example": "5.00000000",
+            "description": "Shares earmarked for resting SELL orders."
+          },
+          "averageCost": {
+            "type": "string",
+            "example": "437.489967",
+            "description": "Weighted average cost per share, fees included."
+          },
+          "costBasis": {
+            "type": "string",
+            "example": "19980.018067"
+          },
+          "markPrice": {
+            "type": "string",
+            "example": "440.120000",
+            "description": "Mark price used for valuation."
+          },
+          "marketValue": {
+            "type": "string",
+            "example": "20100.140000"
+          },
+          "unrealizedPnl": {
+            "type": "string",
+            "example": "120.121933"
+          },
+          "unrealizedPnlBps": {
+            "type": "number",
+            "example": 60,
+            "description": "Unrealised P&L against cost basis, in basis points."
+          },
+          "realizedPnl": {
+            "type": "string",
+            "example": "0.000000",
+            "description": "Cumulative realised P&L in this asset."
+          },
+          "weightBps": {
+            "type": "number",
+            "example": 812,
+            "description": "Share of total portfolio equity, in basis points."
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "quantity",
+          "availableQuantity",
+          "reservedQuantity",
+          "averageCost",
+          "costBasis",
+          "markPrice",
+          "marketValue",
+          "unrealizedPnl",
+          "unrealizedPnlBps",
+          "realizedPnl",
+          "weightBps"
+        ]
+      },
+      "PortfolioTotalsDto": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "string",
+            "example": "224594.490784"
+          },
+          "positionsValue": {
+            "type": "string",
+            "example": "20100.140000"
+          },
+          "equity": {
+            "type": "string",
+            "example": "244694.630784",
+            "description": "Cash plus the marked value of every holding."
+          },
+          "costBasis": {
+            "type": "string",
+            "example": "19980.018067"
+          },
+          "unrealizedPnl": {
+            "type": "string",
+            "example": "120.121933"
+          },
+          "realizedPnl": {
+            "type": "string",
+            "example": "-6.088800"
+          },
+          "totalPnl": {
+            "type": "string",
+            "example": "114.033133",
+            "description": "Realised plus unrealised."
+          },
+          "netDeposits": {
+            "type": "string",
+            "example": "250000.000000",
+            "description": "Deposits less withdrawals to date."
+          },
+          "totalReturnBps": {
+            "type": "number",
+            "example": -21,
+            "description": "Equity against net deposits, in basis points. The true return on the account."
+          }
+        },
+        "required": [
+          "cash",
+          "positionsValue",
+          "equity",
+          "costBasis",
+          "unrealizedPnl",
+          "realizedPnl",
+          "totalPnl",
+          "netDeposits",
+          "totalReturnBps"
+        ]
+      },
+      "ReconciliationDto": {
+        "type": "object",
+        "properties": {
+          "consistent": {
+            "type": "boolean",
+            "description": "True when the O(log n) running-balance read and the independent full ledger fold agree exactly."
+          },
+          "cashDrift": {
+            "type": "string",
+            "example": "0.000000",
+            "description": "Cash difference between the two methods."
+          },
+          "positionDrift": {
+            "example": [],
+            "description": "Symbols where the snapshot and the fill replay disagree. Empty means clean.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ledgerEntriesFolded": {
+            "type": "number",
+            "example": 3,
+            "description": "Ledger entries folded during verification."
+          },
+          "fillsReplayed": {
+            "type": "number",
+            "example": 4,
+            "description": "Fills replayed during verification."
+          }
+        },
+        "required": [
+          "consistent",
+          "cashDrift",
+          "positionDrift",
+          "ledgerEntriesFolded",
+          "fillsReplayed"
+        ]
+      },
+      "PortfolioDto": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "example": "2026-08-27T15:30:00.000Z",
+            "description": "The instant this portfolio represents."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "LIVE",
+              "HISTORICAL"
+            ],
+            "description": "HISTORICAL when reconstructed at a past timestamp."
+          },
+          "cash": {
+            "$ref": "#/components/schemas/CashDto"
+          },
+          "holdings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HoldingDto"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/PortfolioTotalsDto"
+          },
+          "reconciliation": {
+            "description": "Present when `verify=true`. Proves the fast path matches a full recomputation.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReconciliationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "asOf",
+          "mode",
+          "cash",
+          "holdings",
+          "totals"
+        ]
+      },
+      "EquityPointDto": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "equity": {
+            "type": "string",
+            "example": "244694.630784"
+          },
+          "cash": {
+            "type": "string",
+            "example": "224594.490784"
+          },
+          "positionsValue": {
+            "type": "string",
+            "example": "20100.140000"
+          },
+          "totalPnl": {
+            "type": "string",
+            "example": "114.033133"
+          }
+        },
+        "required": [
+          "at",
+          "equity",
+          "cash",
+          "positionsValue",
+          "totalPnl"
+        ]
+      },
+      "EquityCurveDto": {
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EquityPointDto"
+            }
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "points",
+          "from",
+          "to"
+        ]
+      },
+      "LedgerEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1042"
+          },
+          "account": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "CASH_RESERVED",
+              "POSITION",
+              "POSITION_RESERVED"
+            ]
+          },
+          "symbol": {
+            "type": "object",
+            "nullable": true,
+            "example": "vSOL"
+          },
+          "delta": {
+            "type": "string",
+            "example": "-19980.018067"
+          },
+          "balanceAfter": {
+            "type": "string",
+            "example": "223343.240784"
+          },
+          "entryType": {
+            "type": "string",
+            "example": "TRADE_BUY"
+          },
+          "reference": {
+            "type": "object",
+            "nullable": true
+          },
+          "memo": {
+            "type": "string",
+            "example": "BUY 45.66966000 vSOL @ 437.489967"
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "account",
+          "symbol",
+          "delta",
+          "balanceAfter",
+          "entryType",
+          "reference",
+          "memo",
+          "at"
+        ]
+      },
+      "MarketControlDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Pending corporate announcement",
+            "description": "Recorded on the audit trail."
+          }
+        }
+      },
+      "MarketControlResultDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "HALTED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "example": "Pending corporate announcement"
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "status",
+          "reason",
+          "at"
+        ]
+      },
+      "PriceShockDto": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "string",
+            "example": "520.00",
+            "description": "New mark price. Snapped to the asset tick size."
+          }
+        },
+        "required": [
+          "price"
+        ]
+      },
+      "PriceShockResultDto": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "vSOL"
+          },
+          "previousPrice": {
+            "type": "string",
+            "example": "431.450000"
+          },
+          "price": {
+            "type": "string",
+            "example": "520.000000"
+          },
+          "moveBps": {
+            "type": "number",
+            "example": 2053,
+            "description": "Move applied, in basis points."
+          },
+          "circuitBreakerTripped": {
+            "type": "boolean",
+            "description": "True if this print tripped the circuit breaker."
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "previousPrice",
+          "price",
+          "moveBps",
+          "circuitBreakerTripped",
+          "at"
+        ]
+      }
+    }
+  }
+}

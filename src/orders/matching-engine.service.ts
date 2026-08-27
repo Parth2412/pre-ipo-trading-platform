@@ -122,7 +122,12 @@ export class MatchingEngineService {
     });
 
     const context: ExecutionContext = { asset, positions: new Map(), events: [] };
-    const reserved = await this.reserve(tx, order, plan.filledNotional, rests ? plan.remainingQuantity : 0n);
+    const reserved = await this.reserve(
+      tx,
+      order,
+      plan.filledNotional,
+      rests ? plan.remainingQuantity : 0n,
+    );
 
     const fills: FillRecord[] = [];
     let filledQuantity = 0n;
@@ -151,7 +156,13 @@ export class MatchingEngineService {
       cashConsumed += execution.notional + takerFee;
 
       if (execution.source.kind === 'USER' && execution.source.orderId) {
-        await this.fillMakerOrder(tx, context, execution.source.orderId, execution.quantity, execution.price);
+        await this.fillMakerOrder(
+          tx,
+          context,
+          execution.source.orderId,
+          execution.quantity,
+          execution.price,
+        );
       }
     }
 
@@ -164,7 +175,11 @@ export class MatchingEngineService {
       rests,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: command.userId, order: toOrderDto(finalised, fills) });
+    context.events.push({
+      type: 'ORDER_UPDATED',
+      userId: command.userId,
+      order: toOrderDto(finalised, fills),
+    });
     context.events.push({ type: 'BOOK_CHANGED', symbol: asset.symbol });
 
     return { order: finalised, fills, events: context.events };
@@ -307,13 +322,20 @@ export class MatchingEngineService {
       cashConsumed += execution.notional + fee;
 
       if (execution.source.kind === 'USER' && execution.source.orderId) {
-        await this.fillMakerOrder(tx, context, execution.source.orderId, execution.quantity, execution.price);
+        await this.fillMakerOrder(
+          tx,
+          context,
+          execution.source.orderId,
+          execution.quantity,
+          execution.price,
+        );
       }
     }
 
     const fullyFilled = filledQuantity >= order.quantity;
     let reservedCash = order.side === 'BUY' ? order.reservedCash - cashConsumed : 0n;
-    let reservedQuantity = order.side === 'SELL' ? order.reservedQuantity - plan.filledQuantity : 0n;
+    let reservedQuantity =
+      order.side === 'SELL' ? order.reservedQuantity - plan.filledQuantity : 0n;
 
     if (fullyFilled) {
       await this.releaseReservation(
@@ -335,7 +357,11 @@ export class MatchingEngineService {
       rejectReason: null,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: order.userId, order: toOrderDto(updated, fills) });
+    context.events.push({
+      type: 'ORDER_UPDATED',
+      userId: order.userId,
+      order: toOrderDto(updated, fills),
+    });
     context.events.push({ type: 'BOOK_CHANGED', symbol: asset.symbol });
     return { order: updated, fills, events: context.events };
   }
@@ -347,10 +373,9 @@ export class MatchingEngineService {
   private assertTradable(symbol: string): Asset {
     const asset = this.marketData.requireAsset(symbol);
     if (asset.status === 'HALTED') {
-      throw new MarketHaltedException(
-        `Trading in ${asset.symbol} is halted by an administrator.`,
-        { symbol: asset.symbol },
-      );
+      throw new MarketHaltedException(`Trading in ${asset.symbol} is halted by an administrator.`, {
+        symbol: asset.symbol,
+      });
     }
     this.breakers.assertTradable(asset.symbol);
     return asset;
@@ -415,7 +440,8 @@ export class MatchingEngineService {
       return quantity;
     }
 
-    const budget = (command.notional! * 10_000n) / (10_000n + BigInt(this.config.trading.takerFeeBps));
+    const budget =
+      (command.notional! * 10_000n) / (10_000n + BigInt(this.config.trading.takerFeeBps));
     const ranked = eligibleSources({
       side: command.side,
       limitPrice: command.limitPrice ?? null,
@@ -791,7 +817,11 @@ export class MatchingEngineService {
       rejectReason: null,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: maker.userId, order: toOrderDto(updated) });
+    context.events.push({
+      type: 'ORDER_UPDATED',
+      userId: maker.userId,
+      order: toOrderDto(updated),
+    });
   }
 
   /** Decide the terminal (or resting) state of the taker order and settle leftovers. */
@@ -842,5 +872,4 @@ export class MatchingEngineService {
           : null,
     });
   }
-
 }

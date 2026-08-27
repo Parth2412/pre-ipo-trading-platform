@@ -1,11 +1,35 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Res } from '@nestjs/common';
-import { ApiBearerAuth, ApiHeader, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FastifyReply } from 'fastify';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthenticatedUser } from '../auth/auth.types';
 import { IdempotencyKey } from './idempotency-key.decorator';
 import { OrdersService } from './orders.service';
-import { OrderDto, OrderListQueryDto, PlaceOrderDto, TradeDto, TradeListQueryDto } from './dto/order.dto';
+import {
+  OrderDto,
+  OrderListQueryDto,
+  PlaceOrderDto,
+  TradeDto,
+  TradeListQueryDto,
+} from './dto/order.dto';
 
 @ApiTags('Orders')
 @ApiBearerAuth()
@@ -31,7 +55,10 @@ export class OrdersController {
   @ApiResponse({ status: 201, type: OrderDto })
   @ApiResponse({ status: 400, description: 'VALIDATION_FAILED / IDEMPOTENCY_KEY_REQUIRED' })
   @ApiResponse({ status: 409, description: 'IDEMPOTENT_REQUEST_IN_FLIGHT' })
-  @ApiResponse({ status: 422, description: 'INSUFFICIENT_FUNDS / INSUFFICIENT_SHARES / NO_LIQUIDITY' })
+  @ApiResponse({
+    status: 422,
+    description: 'INSUFFICIENT_FUNDS / INSUFFICIENT_SHARES / NO_LIQUIDITY',
+  })
   @ApiResponse({ status: 423, description: 'CIRCUIT_BREAKER_TRIPPED / MARKET_HALTED' })
   async place(
     @CurrentUser() user: AuthenticatedUser,

@@ -11,7 +11,7 @@ export class SeededRandom {
 
   constructor(seed: number) {
     // Ensure a non-zero uint32 state.
-    this.state = (Math.trunc(seed) >>> 0) || 0x9e3779b9;
+    this.state = Math.trunc(seed) >>> 0 || 0x9e3779b9;
   }
 
   /** Uniform in [0, 1). */

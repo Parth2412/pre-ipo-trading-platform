@@ -1,5 +1,11 @@
 import { parsePrice, parseQuantity } from '../common/money';
-import { BookLevel, mergeLevels, takeableLevels, walkForNotional, walkForQuantity } from './order-book';
+import {
+  BookLevel,
+  mergeLevels,
+  takeableLevels,
+  walkForNotional,
+  walkForQuantity,
+} from './order-book';
 
 const level = (price: string, quantity: string): BookLevel => ({
   price: parsePrice(price),

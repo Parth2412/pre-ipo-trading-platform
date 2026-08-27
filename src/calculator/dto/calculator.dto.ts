@@ -57,7 +57,10 @@ export class CalculatorResponseDto {
   @ApiProperty({ example: '420.000000', description: 'Mid mark at the time of the quote.' })
   referencePrice!: string;
 
-  @ApiProperty({ example: '11.83000000', description: 'Shares obtainable, floored to the lot size.' })
+  @ApiProperty({
+    example: '11.83000000',
+    description: 'Shares obtainable, floored to the lot size.',
+  })
   quantity!: string;
 
   @ApiProperty({ example: '4972.560000', description: 'Notional before fees.' })
@@ -72,7 +75,10 @@ export class CalculatorResponseDto {
   })
   netCash!: string;
 
-  @ApiProperty({ example: '420.250000', description: 'Volume-weighted price across consumed levels.' })
+  @ApiProperty({
+    example: '420.250000',
+    description: 'Volume-weighted price across consumed levels.',
+  })
   effectivePrice!: string;
 
   @ApiProperty({ example: 6, description: 'Effective price versus reference price, in bps.' })

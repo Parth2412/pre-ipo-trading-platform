@@ -5,6 +5,9 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "tsConfigPath": "tsconfig.build.json",
-    "assets": [{ "include": "../public/**/*", "outDir": "./dist/public" }]
+    "assets": [
+      { "include": "database/migrations/**/*.sql" },
+      { "include": "../public/**/*", "outDir": "./dist/public" }
+    ]
   }
 }

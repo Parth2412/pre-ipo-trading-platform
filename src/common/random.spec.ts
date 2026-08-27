@@ -26,8 +26,7 @@ describe('SeededRandom', () => {
     const random = new SeededRandom(2024);
     const samples = Array.from({ length: 20_000 }, () => random.nextGaussian());
     const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
-    const variance =
-      samples.reduce((sum, value) => sum + (value - mean) ** 2, 0) / samples.length;
+    const variance = samples.reduce((sum, value) => sum + (value - mean) ** 2, 0) / samples.length;
 
     expect(Math.abs(mean)).toBeLessThan(0.05);
     expect(Math.abs(variance - 1)).toBeLessThan(0.05);

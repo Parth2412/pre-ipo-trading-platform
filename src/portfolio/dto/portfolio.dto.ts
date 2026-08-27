@@ -3,7 +3,9 @@ import { Transform } from 'class-transformer';
 import { IsBoolean, IsInt, IsISO8601, IsOptional, Max, Min } from 'class-validator';
 
 const toBoolean = ({ value }: { value: unknown }) =>
-  value === undefined || value === '' ? undefined : value === true || value === 'true' || value === '1';
+  value === undefined || value === ''
+    ? undefined
+    : value === true || value === 'true' || value === '1';
 
 const toNumber = ({ value }: { value: unknown }) =>
   value === undefined || value === '' ? undefined : Number(value);
@@ -21,7 +23,10 @@ export class HoldingDto {
   @ApiProperty({ example: '5.00000000', description: 'Shares earmarked for resting SELL orders.' })
   reservedQuantity!: string;
 
-  @ApiProperty({ example: '437.489967', description: 'Weighted average cost per share, fees included.' })
+  @ApiProperty({
+    example: '437.489967',
+    description: 'Weighted average cost per share, fees included.',
+  })
   averageCost!: string;
 
   @ApiProperty({ example: '19980.018067' }) costBasis!: string;
@@ -48,7 +53,10 @@ export class CashDto {
 export class PortfolioTotalsDto {
   @ApiProperty({ example: '224594.490784' }) cash!: string;
   @ApiProperty({ example: '20100.140000' }) positionsValue!: string;
-  @ApiProperty({ example: '244694.630784', description: 'Cash plus the marked value of every holding.' })
+  @ApiProperty({
+    example: '244694.630784',
+    description: 'Cash plus the marked value of every holding.',
+  })
   equity!: string;
   @ApiProperty({ example: '19980.018067' }) costBasis!: string;
   @ApiProperty({ example: '120.121933' }) unrealizedPnl!: string;

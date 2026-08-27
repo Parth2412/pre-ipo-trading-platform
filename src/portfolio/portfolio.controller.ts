@@ -45,7 +45,10 @@ export class PortfolioController {
       '`verify=true` to also recompute the whole thing from raw ledger deltas and report any drift.',
   })
   @ApiResponse({ status: 200, type: PortfolioDto })
-  @ApiResponse({ status: 400, description: 'VALIDATION_FAILED — `at` missing, malformed or in the future' })
+  @ApiResponse({
+    status: 400,
+    description: 'VALIDATION_FAILED — `at` missing, malformed or in the future',
+  })
   history(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PortfolioHistoryQueryDto,

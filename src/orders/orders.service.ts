@@ -13,7 +13,13 @@ import { IdempotencyService } from './idempotency.service';
 import { MatchingEngineService } from './matching-engine.service';
 import { OrdersRepository } from './orders.repository';
 import { ORDERS_ENDPOINT, OrderRecord, PlaceOrderCommand } from './order.types';
-import { OrderDto, OrderListQueryDto, PlaceOrderDto, TradeDto, TradeListQueryDto } from './dto/order.dto';
+import {
+  OrderDto,
+  OrderListQueryDto,
+  PlaceOrderDto,
+  TradeDto,
+  TradeListQueryDto,
+} from './dto/order.dto';
 import { toOrderDto, toTradeDto } from './orders.mapper';
 
 export interface PlacementOutcome {
@@ -42,11 +48,20 @@ export class OrdersService {
     private readonly events: TradingEventsService,
   ) {}
 
-  async place(userId: string, dto: PlaceOrderDto, idempotencyKey: string): Promise<PlacementOutcome> {
+  async place(
+    userId: string,
+    dto: PlaceOrderDto,
+    idempotencyKey: string,
+  ): Promise<PlacementOutcome> {
     const command = this.toCommand(userId, dto, idempotencyKey);
     const requestHash = IdempotencyService.hashRequest(dto);
 
-    const begin = await this.idempotency.begin(userId, ORDERS_ENDPOINT, idempotencyKey, requestHash);
+    const begin = await this.idempotency.begin(
+      userId,
+      ORDERS_ENDPOINT,
+      idempotencyKey,
+      requestHash,
+    );
     if (begin.outcome === 'REPLAY') {
       if (begin.status >= 400) throw replayedError(begin.status, begin.body);
       return { order: begin.body as OrderDto, replayed: true };
@@ -65,11 +80,17 @@ export class OrdersService {
       if (error instanceof DomainException) {
         // A deliberate rejection is a real outcome: record it so replaying the
         // same key returns the same rejection instead of re-running the engine.
-        await this.idempotency.complete(userId, ORDERS_ENDPOINT, idempotencyKey, error.getStatus(), {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-        });
+        await this.idempotency.complete(
+          userId,
+          ORDERS_ENDPOINT,
+          idempotencyKey,
+          error.getStatus(),
+          {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+          },
+        );
         throw error;
       }
       // Unexpected failure: drop the marker so the client may safely retry.
@@ -174,9 +195,12 @@ export class OrdersService {
       );
     }
 
-    const quantity = dto.quantity !== undefined ? parseQuantity(dto.quantity, 'quantity') : undefined;
-    const notional = dto.usdAmount !== undefined ? parseCash(dto.usdAmount, 'usdAmount') : undefined;
-    const limitPrice = dto.limitPrice !== undefined ? parsePrice(dto.limitPrice, 'limitPrice') : undefined;
+    const quantity =
+      dto.quantity !== undefined ? parseQuantity(dto.quantity, 'quantity') : undefined;
+    const notional =
+      dto.usdAmount !== undefined ? parseCash(dto.usdAmount, 'usdAmount') : undefined;
+    const limitPrice =
+      dto.limitPrice !== undefined ? parsePrice(dto.limitPrice, 'limitPrice') : undefined;
 
     if (quantity !== undefined && quantity <= 0n) {
       throw new ValidationException('`quantity` must be greater than zero.');
@@ -211,7 +235,11 @@ export class OrdersService {
 }
 
 function replayedError(status: number, body: unknown): DomainException {
-  const payload = (body ?? {}) as { code?: string; message?: string; details?: Record<string, unknown> };
+  const payload = (body ?? {}) as {
+    code?: string;
+    message?: string;
+    details?: Record<string, unknown>;
+  };
   return new DomainException(
     (payload.code as ErrorCode) ?? ErrorCode.INTERNAL_ERROR,
     payload.message ?? 'The original request failed.',
