@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { AppModule } from './app.module';
 import { APP_CONFIG, AppConfig } from './config/configuration';
 import { setupSwagger } from './swagger';
@@ -13,6 +15,12 @@ async function bootstrap(): Promise<void> {
   );
 
   app.enableCors({ origin: true, credentials: true });
+
+  // The trading console. `dist/public` when built, `public/` when run from source.
+  const publicDir = [join(__dirname, 'public'), join(process.cwd(), 'public')].find(existsSync);
+  if (publicDir) {
+    app.useStaticAssets({ root: publicDir, prefix: '/' });
+  }
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

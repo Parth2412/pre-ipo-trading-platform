@@ -1,4 +1,5 @@
 import { OrderSide, OrderStatus, OrderType, TimeInForce } from '../database/schema';
+import { priceOf } from '../common/money';
 
 export type { OrderSide, OrderStatus, OrderType, TimeInForce };
 
@@ -59,6 +60,16 @@ export interface FillRecord {
   readonly postAvgCost: bigint;
   readonly postRealizedPnl: bigint;
   readonly createdAt: Date;
+}
+
+/** Volume-weighted average price of an order's executions. Zero before the first fill. */
+export function averageFillPrice(order: OrderRecord): bigint {
+  return order.filledQuantity > 0n ? priceOf(order.filledNotional, order.filledQuantity) : 0n;
+}
+
+/** Quantity still working on the book. */
+export function remainingQuantity(order: OrderRecord): bigint {
+  return order.quantity - order.filledQuantity;
 }
 
 export interface OrderWithFills {
