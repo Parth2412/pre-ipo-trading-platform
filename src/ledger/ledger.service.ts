@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { Executor, Transaction } from '../database/database.service';
 import { InsufficientFundsException, InsufficientSharesException } from '../common/errors';
 import { formatCash, formatQuantity } from '../common/money';
+import { asBigInt, asDate } from '../common/rows';
 import {
   AccountBalance,
   CASH,
@@ -22,7 +23,7 @@ interface EntryRow {
   asset_symbol: string | null;
   delta: string;
   balance_after: string;
-  created_at: Date;
+  created_at: string;
 }
 
 /**
@@ -73,7 +74,7 @@ export class LedgerService {
         AND COALESCE(asset_symbol, '') = COALESCE(${assetSymbol}::text, '')
       FOR UPDATE
     `);
-    const current = BigInt((locked.rows[0] as unknown as BalanceRow).amount);
+    const current = asBigInt((locked.rows[0] as unknown as BalanceRow).amount);
     const next = current + delta;
 
     if (next < 0n) {
@@ -102,13 +103,13 @@ export class LedgerService {
 
     const row = inserted.rows[0] as unknown as EntryRow;
     return {
-      id: BigInt(row.id),
+      id: asBigInt(row.id),
       userId: row.user_id,
       account: row.account,
       assetSymbol: row.asset_symbol,
-      delta: BigInt(row.delta),
-      balanceAfter: BigInt(row.balance_after),
-      createdAt: row.created_at,
+      delta: asBigInt(row.delta),
+      balanceAfter: asBigInt(row.balance_after),
+      createdAt: asDate(row.created_at),
     };
   }
 
@@ -149,7 +150,7 @@ export class LedgerService {
         AND COALESCE(asset_symbol, '') = COALESCE(${assetSymbol}::text, '')
     `);
     const row = result.rows[0] as unknown as BalanceRow | undefined;
-    return row ? BigInt(row.amount) : 0n;
+    return row ? asBigInt(row.amount) : 0n;
   }
 
   /** Every non-zero account the user holds right now. */
@@ -164,7 +165,7 @@ export class LedgerService {
       (row) => ({
         account: row.account,
         assetSymbol: row.asset_symbol,
-        amount: BigInt(row.amount),
+        amount: asBigInt(row.amount),
       }),
     );
   }
@@ -193,7 +194,7 @@ export class LedgerService {
       LIMIT 1
     `);
     const row = result.rows[0] as unknown as { balance_after: string } | undefined;
-    return row ? BigInt(row.balance_after) : 0n;
+    return row ? asBigInt(row.balance_after) : 0n;
   }
 
   /**
@@ -210,8 +211,93 @@ export class LedgerService {
       ORDER BY account, COALESCE(asset_symbol, ''), created_at DESC, id DESC
     `);
     return (result.rows as unknown as Array<{ account: LedgerAccount; asset_symbol: string | null; amount: string }>).map(
-      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: BigInt(row.amount) }),
+      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: asBigInt(row.amount) }),
     );
+  }
+
+  /** Net of every DEPOSIT and WITHDRAWAL, i.e. the capital the user actually put in. */
+  async netDeposits(executor: Executor, userId: string, at?: Date): Promise<bigint> {
+    const result = await executor.execute(sql`
+      SELECT COALESCE(SUM(delta), 0)::bigint AS total
+      FROM ledger_entries
+      WHERE user_id = ${userId}::uuid
+        AND entry_type IN ('DEPOSIT', 'WITHDRAWAL')
+        AND (${at ? at.toISOString() : null}::timestamptz IS NULL
+             OR created_at <= ${at ? at.toISOString() : null}::timestamptz)
+    `);
+    return asBigInt((result.rows[0] as unknown as { total: string }).total);
+  }
+
+  /** Paginated statement of the user's ledger, newest first. */
+  async statement(
+    executor: Executor,
+    userId: string,
+    options: { limit: number; offset: number },
+  ): Promise<LedgerStatementEntry[]> {
+    const result = await executor.execute(sql`
+      SELECT id, account, asset_symbol, delta, balance_after, entry_type, ref_type, ref_id, memo, created_at
+      FROM ledger_entries
+      WHERE user_id = ${userId}::uuid
+      ORDER BY id DESC
+      LIMIT ${options.limit} OFFSET ${options.offset}
+    `);
+    return (
+      result.rows as unknown as Array<{
+        id: string;
+        account: LedgerAccount;
+        asset_symbol: string | null;
+        delta: string;
+        balance_after: string;
+        entry_type: string;
+        ref_type: string | null;
+        ref_id: string | null;
+        memo: string;
+        created_at: string;
+      }>
+    ).map((row) => ({
+      id: asBigInt(row.id),
+      account: row.account,
+      assetSymbol: row.asset_symbol,
+      delta: asBigInt(row.delta),
+      balanceAfter: asBigInt(row.balance_after),
+      entryType: row.entry_type,
+      reference: row.ref_type && row.ref_id ? `${row.ref_type}:${row.ref_id}` : null,
+      memo: row.memo,
+      createdAt: asDate(row.created_at),
+    }));
+  }
+
+  /**
+   * Timestamp of the account's first ledger entry, i.e. when it came to life.
+   *
+   * Rounded *up* to the next whole millisecond. Postgres stores microseconds and
+   * `Date` only holds milliseconds, so truncating would place the returned
+   * instant fractionally *before* the entry — and a caller asking for the
+   * portfolio "at first activity" would get an empty account back.
+   */
+  async firstEntryAt(executor: Executor, userId: string): Promise<Date | undefined> {
+    const result = await executor.execute(sql`
+      SELECT created_at FROM ledger_entries
+      WHERE user_id = ${userId}::uuid
+      ORDER BY id ASC
+      LIMIT 1
+    `);
+    const row = result.rows[0] as unknown as { created_at: string } | undefined;
+    if (!row) return undefined;
+    const truncated = asDate(row.created_at);
+    const hasSubMillisecond = /\.\d{4,}/.test(row.created_at);
+    return hasSubMillisecond ? new Date(truncated.getTime() + 1) : truncated;
+  }
+
+  /** Count of entries at or before an instant. Reported by the verification path. */
+  async countEntries(executor: Executor, userId: string, at?: Date): Promise<number> {
+    const result = await executor.execute(sql`
+      SELECT COUNT(*)::int AS total FROM ledger_entries
+      WHERE user_id = ${userId}::uuid
+        AND (${at ? at.toISOString() : null}::timestamptz IS NULL
+             OR created_at <= ${at ? at.toISOString() : null}::timestamptz)
+    `);
+    return Number((result.rows[0] as unknown as { total: number }).total);
   }
 
   /**
@@ -232,9 +318,21 @@ export class LedgerService {
       ORDER BY account, COALESCE(asset_symbol, '')
     `);
     return (result.rows as unknown as Array<{ account: LedgerAccount; asset_symbol: string | null; amount: string }>).map(
-      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: BigInt(row.amount) }),
+      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: asBigInt(row.amount) }),
     );
   }
+}
+
+export interface LedgerStatementEntry {
+  readonly id: bigint;
+  readonly account: LedgerAccount;
+  readonly assetSymbol: string | null;
+  readonly delta: bigint;
+  readonly balanceAfter: bigint;
+  readonly entryType: string;
+  readonly reference: string | null;
+  readonly memo: string;
+  readonly createdAt: Date;
 }
 
 function comparePostings(a: LedgerPosting, b: LedgerPosting): number {
