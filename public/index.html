@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pre-IPO Trading Desk</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📈</text></svg>" />
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #121722; --panel-2: #171d2b; --line: #232b3d;
+    --text: #e6edf7; --muted: #8b97ad; --dim: #5d6880;
+    --up: #2ecc86; --down: #ff5c76; --accent: #5b9cff; --warn: #ffb454;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; padding: 12px 20px;
+    border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  #conn { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--down); }
+  .dot.on { background: var(--up); box-shadow: 0 0 8px var(--up); }
+
+  main { display: grid; grid-template-columns: 300px minmax(0,1fr) 340px; gap: 12px; padding: 12px; align-items: start; }
+  @media (max-width: 1200px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .panel > h2 {
+    margin: 0; padding: 10px 14px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); border-bottom: 1px solid var(--line); background: var(--panel-2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel > h2 .right { margin-left: auto; text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--dim); }
+  .body { padding: 12px 14px; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .up { color: var(--up); } .down { color: var(--down); } .muted { color: var(--muted); }
+
+  .asset { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 14px;
+           border-bottom: 1px solid var(--line); cursor: pointer; transition: background .12s; }
+  .asset:last-child { border-bottom: 0; }
+  .asset:hover { background: var(--panel-2); }
+  .asset.sel { background: #1b2740; box-shadow: inset 3px 0 0 var(--accent); }
+  .asset .sym { font-weight: 600; }
+  .asset .nm { grid-column: 1; color: var(--dim); font-size: 12px; }
+  .asset .px { grid-row: 1; grid-column: 2; font-family: var(--mono); }
+  .asset .chg { grid-row: 2; grid-column: 2; text-align: right; font-size: 12px; font-family: var(--mono); }
+  .flash-up { animation: fu .5s; } .flash-down { animation: fd .5s; }
+  @keyframes fu { from { background: rgba(46,204,134,.28); } }
+  @keyframes fd { from { background: rgba(255,92,118,.28); } }
+
+  .halt { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: rgba(255,180,84,.15); color: var(--warn); }
+
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12.5px; }
+  th { text-align: right; color: var(--dim); font-weight: 500; padding: 4px 6px; font-size: 11px; }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 3px 6px; text-align: right; }
+  .book td { position: relative; }
+  .depth { position: absolute; top: 1px; bottom: 1px; right: 0; opacity: .13; border-radius: 2px; }
+  .book .ask .depth { background: var(--down); } .book .bid .depth { background: var(--up); }
+  .book .ask td:first-child { color: var(--down); } .book .bid td:first-child { color: var(--up); }
+  .spread { text-align: center; color: var(--dim); font-size: 11px; padding: 6px 0;
+            border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-family: var(--mono); }
+
+  label { display: block; font-size: 11px; color: var(--muted); margin: 10px 0 4px; }
+  input, select, button {
+    width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); font: inherit; font-family: var(--mono);
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seg button { font-family: inherit; cursor: pointer; border-color: var(--line); background: var(--panel-2); }
+  .seg button.on[data-side="BUY"] { background: rgba(46,204,134,.16); border-color: var(--up); color: var(--up); }
+  .seg button.on[data-side="SELL"] { background: rgba(255,92,118,.16); border-color: var(--down); color: var(--down); }
+  .seg button.on[data-type] { background: rgba(91,156,255,.16); border-color: var(--accent); color: var(--accent); }
+  button.primary { margin-top: 14px; cursor: pointer; font-weight: 600; border: 0; padding: 11px;
+                   background: var(--accent); color: #04101f; font-family: inherit; }
+  button.primary:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary.sell { background: var(--down); color: #240a10; }
+  button.link { width: auto; padding: 2px 8px; font-size: 11px; background: transparent;
+                border-color: var(--line); color: var(--muted); cursor: pointer; }
+  button.link:hover { color: var(--text); border-color: var(--accent); }
+
+  .quote { margin-top: 10px; padding: 9px 11px; border-radius: 7px; background: var(--panel-2);
+           border: 1px solid var(--line); font-size: 12px; font-family: var(--mono); }
+  .quote div { display: flex; justify-content: space-between; padding: 1px 0; }
+  .quote .k { color: var(--dim); }
+
+  .msg { margin: 10px 14px 0; padding: 9px 11px; border-radius: 7px; font-size: 12.5px; display: none; }
+  .msg.err { display: block; background: rgba(255,92,118,.12); border: 1px solid rgba(255,92,118,.4); color: #ffb3c0; }
+  .msg.ok  { display: block; background: rgba(46,204,134,.12); border: 1px solid rgba(46,204,134,.4); color: #9ef0c8; }
+
+  .kv { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .kv .k { color: var(--muted); } .kv .v { font-family: var(--mono); }
+  .divider { height: 1px; background: var(--line); margin: 8px 0; }
+  .empty { color: var(--dim); font-size: 12.5px; padding: 14px; text-align: center; }
+  .pill { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--panel-2); color: var(--muted); }
+  .pill.OPEN, .pill.PARTIALLY_FILLED { background: rgba(91,156,255,.15); color: var(--accent); }
+  .pill.FILLED { background: rgba(46,204,134,.15); color: var(--up); }
+  .pill.CANCELLED, .pill.REJECTED { background: rgba(139,151,173,.14); color: var(--muted); }
+  #chart { width: 100%; height: 120px; display: block; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs button { width: auto; padding: 3px 10px; font-size: 11px; background: transparent; border-color: transparent;
+                 color: var(--dim); cursor: pointer; font-family: inherit; }
+  .tabs button.on { color: var(--text); background: var(--panel); border-color: var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Pre-IPO Trading Desk</h1>
+  <span class="sub">tokenized private-market shares · simulated</span>
+  <div id="conn"><span class="dot" id="dot"></span><span id="connText">connecting…</span></div>
+</header>
+
+<main>
+  <!-- ---------------------------------------------------------------- assets -->
+  <div>
+    <section class="panel">
+      <h2>Market <span class="right" id="clock"></span></h2>
+      <div id="assets"></div>
+    </section>
+
+    <section class="panel" style="margin-top:12px">
+      <h2>Account</h2>
+      <div class="body" id="account">
+        <div id="loginBox">
+          <label>Email</label>
+          <input id="email" value="alice@example.com" autocomplete="username" />
+          <label>Password</label>
+          <input id="password" type="password" value="Password123!" autocomplete="current-password" />
+          <button class="primary" id="loginBtn">Sign in</button>
+          <div class="muted" style="margin-top:10px;font-size:11.5px">
+            Seeded traders: alice@ · bob@ · admin@ — all <span class="num">Password123!</span>
+          </div>
+        </div>
+        <div id="accountBox" style="display:none">
+          <div class="kv"><span class="k">Signed in</span><span class="v" id="who"></span></div>
+          <div class="divider"></div>
+          <div class="kv"><span class="k">Cash</span><span class="v" id="cash">—</span></div>
+          <div class="kv"><span class="k">Reserved</span><span class="v muted" id="reserved">—</span></div>
+          <div class="kv"><span class="k">Positions</span><span class="v" id="posValue">—</span></div>
+          <div class="divider"></div>
+          <div class="kv"><span class="k">Equity</span><span class="v" id="equity">—</span></div>
+          <div class="kv"><span class="k">Total P&amp;L</span><span class="v" id="pnl">—</span></div>
+          <button class="link" id="logoutBtn" style="margin-top:12px">Sign out</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ------------------------------------------------------------ book/chart -->
+  <div>
+    <section class="panel">
+      <h2><span id="bookSym">—</span><span class="right" id="bookMid"></span></h2>
+      <div class="body" style="padding-bottom:4px"><canvas id="chart"></canvas></div>
+      <div class="body" style="padding-top:0">
+        <table class="book">
+          <thead><tr><th>Price</th><th>Size</th><th>Total</th></tr></thead>
+          <tbody id="asks"></tbody>
+        </table>
+        <div class="spread" id="spread">—</div>
+        <table class="book">
+          <tbody id="bids"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:12px">
+      <h2>
+        <div class="tabs">
+          <button class="on" data-tab="orders">Orders</button>
+          <button data-tab="holdings">Holdings</button>
+          <button data-tab="trades">Trades</button>
+        </div>
+      </h2>
+      <div id="tabBody"><div class="empty">Sign in to see your activity.</div></div>
+    </section>
+  </div>
+
+  <!-- ---------------------------------------------------------------- ticket -->
+  <div>
+    <section class="panel">
+      <h2>Order ticket</h2>
+      <div class="msg" id="msg"></div>
+      <div class="body">
+        <div class="seg">
+          <button data-side="BUY" class="on">Buy</button>
+          <button data-side="SELL">Sell</button>
+        </div>
+        <div class="seg" style="margin-top:8px">
+          <button data-type="MARKET" class="on">Market</button>
+          <button data-type="LIMIT">Limit</button>
+        </div>
+
+        <div id="limitRow" style="display:none">
+          <label>Limit price (USD)</label>
+          <input id="limitPrice" inputmode="decimal" placeholder="0.00" />
+        </div>
+
+        <div id="usdRow">
+          <label>Amount (USD)</label>
+          <input id="usdAmount" inputmode="decimal" placeholder="1000.00" value="5000" />
+        </div>
+        <div id="qtyRow" style="display:none">
+          <label>Quantity (shares)</label>
+          <input id="quantity" inputmode="decimal" placeholder="0.00000" />
+        </div>
+
+        <div class="quote" id="quote"><span class="muted">Enter a size for a live quote.</span></div>
+        <button class="primary" id="submit">Buy vSOL</button>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:12px">
+      <h2>Portfolio history <span class="right">point-in-time</span></h2>
+      <div class="body">
+        <label>Reconstruct as of</label>
+        <input id="atTime" type="datetime-local" />
+        <button class="primary" id="histBtn" style="background:var(--panel-2);color:var(--text)">Reconstruct</button>
+        <div id="histOut" style="margin-top:10px"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const api = location.origin;
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v, dp = 2) => Number(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+  const usd = (v) => (Number(v) < 0 ? '-$' : '$') + fmt(Math.abs(Number(v)));
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      }));
+
+  const state = {
+    token: localStorage.getItem('token') || null,
+    user: JSON.parse(localStorage.getItem('user') || 'null'),
+    assets: new Map(),
+    symbol: 'vSOL',
+    side: 'BUY',
+    type: 'MARKET',
+    history: new Map(),
+    tab: 'orders',
+    ws: null,
+  };
+
+  // ---------------------------------------------------------------- transport
+  async function call(method, path, body) {
+    const res = await fetch(api + path, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        ...(state.token ? { authorization: 'Bearer ' + state.token } : {}),
+        ...(method === 'POST' && path === '/orders' ? { 'idempotency-key': uuid() } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw Object.assign(new Error(json?.error?.message || res.statusText), { body: json, status: res.status });
+    return json;
+  }
+
+  function say(text, kind) {
+    const el = $('msg');
+    el.textContent = text;
+    el.className = 'msg ' + kind;
+    if (kind === 'ok') setTimeout(() => { el.className = 'msg'; }, 4000);
+  }
+
+  // ------------------------------------------------------------------ market
+  function renderAssets() {
+    const host = $('assets');
+    host.innerHTML = '';
+    for (const a of state.assets.values()) {
+      const el = document.createElement('div');
+      el.className = 'asset' + (a.symbol === state.symbol ? ' sel' : '');
+      el.dataset.symbol = a.symbol;
+      const chg = a.stats24h ? a.stats24h.changeBps / 100 : 0;
+      el.innerHTML =
+        '<div class="sym">' + a.symbol + (a.status === 'HALTED' ? ' <span class="halt">HALTED</span>' : '') +
+        (a.circuitBreaker && a.circuitBreaker.tripped ? ' <span class="halt">BREAKER</span>' : '') + '</div>' +
+        '<div class="px" data-px>' + fmt(a.price) + '</div>' +
+        '<div class="nm">' + a.name + '</div>' +
+        '<div class="chg ' + (chg >= 0 ? 'up' : 'down') + '">' + (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%</div>';
+      el.onclick = () => selectSymbol(a.symbol);
+      host.appendChild(el);
+    }
+  }
+
+  function selectSymbol(symbol) {
+    state.symbol = symbol;
+    $('bookSym').textContent = symbol;
+    renderAssets();
+    syncTicket();
+    subscribeBook();
+    loadHistory();
+  }
+
+  function onPrice(symbol, price) {
+    const a = state.assets.get(symbol);
+    if (!a) return;
+    const previous = Number(a.price);
+    a.price = price;
+    const row = document.querySelector('.asset[data-symbol="' + symbol + '"] [data-px]');
+    if (row) {
+      row.textContent = fmt(price);
+      const cls = Number(price) >= previous ? 'flash-up' : 'flash-down';
+      row.parentElement.classList.remove('flash-up', 'flash-down');
+      void row.parentElement.offsetWidth;
+      row.parentElement.classList.add(cls);
+    }
+    const series = state.history.get(symbol) || [];
+    series.push(Number(price));
+    if (series.length > 240) series.shift();
+    state.history.set(symbol, series);
+    if (symbol === state.symbol) { drawChart(); quote(); }
+  }
+
+  function renderBook(msg) {
+    if (msg.symbol !== state.symbol) return;
+    $('bookMid').textContent = 'mid ' + fmt(msg.mid);
+    const maxSize = Math.max(...[...msg.bids, ...msg.asks].map((l) => Number(l.quantity)), 1);
+    const rows = (levels, side) => {
+      let cumulative = 0;
+      return levels.map((l) => {
+        cumulative += Number(l.quantity);
+        const width = (Number(l.quantity) / maxSize) * 100;
+        return '<tr class="' + side + '"><td>' + fmt(l.price) + '</td><td>' + fmt(l.quantity, 4) +
+          '<span class="depth" style="width:' + width + '%"></span></td><td class="muted">' + fmt(cumulative, 2) + '</td></tr>';
+      }).join('');
+    };
+    $('asks').innerHTML = rows([...msg.asks].reverse(), 'ask');
+    $('bids').innerHTML = rows(msg.bids, 'bid');
+    const spread = Number(msg.asks[0]?.price || 0) - Number(msg.bids[0]?.price || 0);
+    const bps = msg.mid > 0 ? (spread / Number(msg.mid)) * 10000 : 0;
+    $('spread').textContent = 'spread ' + fmt(spread, 4) + '  ·  ' + bps.toFixed(1) + ' bps';
+  }
+
+  function drawChart() {
+    const canvas = $('chart');
+    const series = state.history.get(state.symbol) || [];
+    const ratio = window.devicePixelRatio || 1;
+    const width = canvas.clientWidth, height = 120;
+    canvas.width = width * ratio; canvas.height = height * ratio;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    if (series.length < 2) return;
+
+    const min = Math.min(...series), max = Math.max(...series), span = max - min || 1;
+    const x = (i) => (i / (series.length - 1)) * width;
+    const y = (v) => height - 8 - ((v - min) / span) * (height - 16);
+    const rising = series[series.length - 1] >= series[0];
+    const colour = rising ? '#2ecc86' : '#ff5c76';
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, rising ? 'rgba(46,204,134,.28)' : 'rgba(255,92,118,.28)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.moveTo(0, y(series[0]));
+    series.forEach((v, i) => ctx.lineTo(x(i), y(v)));
+    ctx.lineTo(width, height); ctx.lineTo(0, height); ctx.closePath();
+    ctx.fillStyle = gradient; ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, y(series[0]));
+    series.forEach((v, i) => ctx.lineTo(x(i), y(v)));
+    ctx.strokeStyle = colour; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+
+  async function loadHistory() {
+    try {
+      const data = await call('GET', '/assets/' + state.symbol + '/history?limit=180');
+      state.history.set(state.symbol, data.points.map((p) => Number(p.price)));
+      drawChart();
+    } catch { /* chart is decorative */ }
+  }
+
+  // ------------------------------------------------------------------ ticket
+  function syncTicket() {
+    document.querySelectorAll('[data-side]').forEach((b) => b.classList.toggle('on', b.dataset.side === state.side));
+    document.querySelectorAll('[data-type]').forEach((b) => b.classList.toggle('on', b.dataset.type === state.type));
+    const byUsd = state.type === 'MARKET' && state.side === 'BUY';
+    $('usdRow').style.display = byUsd ? '' : 'none';
+    $('qtyRow').style.display = byUsd ? 'none' : '';
+    $('limitRow').style.display = state.type === 'LIMIT' ? '' : 'none';
+    const button = $('submit');
+    button.textContent = (state.side === 'BUY' ? 'Buy ' : 'Sell ') + state.symbol;
+    button.classList.toggle('sell', state.side === 'SELL');
+    if (state.type === 'LIMIT' && !$('limitPrice').value) {
+      const asset = state.assets.get(state.symbol);
+      if (asset) $('limitPrice').value = Number(asset.price).toFixed(2);
+    }
+    quote();
+  }
+
+  let quoteTimer;
+  function quote() {
+    clearTimeout(quoteTimer);
+    quoteTimer = setTimeout(runQuote, 220);
+  }
+
+  async function runQuote() {
+    const byUsd = state.type === 'MARKET' && state.side === 'BUY';
+    const payload = { symbol: state.symbol, side: state.side };
+    if (byUsd) payload.usdAmount = $('usdAmount').value;
+    else payload.quantity = $('quantity').value;
+    if (state.type === 'LIMIT' && $('limitPrice').value) payload.limitPrice = $('limitPrice').value;
+    if (!payload.usdAmount && !payload.quantity) {
+      $('quote').innerHTML = '<span class="muted">Enter a size for a live quote.</span>';
+      return;
+    }
+    try {
+      const q = await call('POST', '/calculator', payload);
+      $('quote').innerHTML =
+        row('Shares', fmt(q.quantity, 5)) +
+        row('Avg price', usd(q.effectivePrice)) +
+        row('Slippage', q.slippageBps + ' bps') +
+        row('Fee (' + q.feeBps + ' bps)', usd(q.fee)) +
+        row(state.side === 'BUY' ? 'Total cost' : 'Net proceeds', usd(q.netCash)) +
+        (q.warnings.length ? '<div style="color:var(--warn);margin-top:6px">' + q.warnings[0] + '</div>' : '');
+    } catch (error) {
+      $('quote').innerHTML = '<span class="down">' + error.message + '</span>';
+    }
+  }
+  const row = (k, v) => '<div><span class="k">' + k + '</span><span>' + v + '</span></div>';
+
+  async function submit() {
+    if (!state.token) return say('Sign in to place an order.', 'err');
+    const byUsd = state.type === 'MARKET' && state.side === 'BUY';
+    const payload = { symbol: state.symbol, side: state.side, type: state.type };
+    if (byUsd) payload.usdAmount = $('usdAmount').value;
+    else payload.quantity = $('quantity').value;
+    if (state.type === 'LIMIT') payload.limitPrice = $('limitPrice').value;
+
+    $('submit').disabled = true;
+    try {
+      const order = await call('POST', '/orders', payload);
+      say(order.status + ' — ' + fmt(order.filledQuantity, 5) + ' ' + order.symbol +
+        (Number(order.filledQuantity) > 0 ? ' @ ' + usd(order.averageFillPrice) : ' (resting)'), 'ok');
+      refreshAccount();
+    } catch (error) {
+      say((error.body?.error?.code ? error.body.error.code + ' — ' : '') + error.message, 'err');
+    } finally {
+      $('submit').disabled = false;
+    }
+  }
+
+  // ----------------------------------------------------------------- account
+  async function login() {
+    try {
+      const auth = await call('POST', '/auth/login', { email: $('email').value, password: $('password').value });
+      state.token = auth.accessToken; state.user = auth.user;
+      localStorage.setItem('token', state.token);
+      localStorage.setItem('user', JSON.stringify(state.user));
+      applySession(); connect();
+    } catch (error) { say(error.message, 'err'); }
+  }
+
+  function logout() {
+    state.token = null; state.user = null;
+    localStorage.removeItem('token'); localStorage.removeItem('user');
+    applySession();
+  }
+
+  function applySession() {
+    const signedIn = Boolean(state.token);
+    $('loginBox').style.display = signedIn ? 'none' : '';
+    $('accountBox').style.display = signedIn ? '' : 'none';
+    if (signedIn) { $('who').textContent = state.user?.displayName || state.user?.email || ''; refreshAccount(); }
+    else { $('tabBody').innerHTML = '<div class="empty">Sign in to see your activity.</div>'; }
+  }
+
+  async function refreshAccount() {
+    if (!state.token) return;
+    try {
+      const p = await call('GET', '/portfolio');
+      $('cash').textContent = usd(p.cash.available);
+      $('reserved').textContent = usd(p.cash.reserved);
+      $('posValue').textContent = usd(p.totals.positionsValue);
+      $('equity').textContent = usd(p.totals.equity);
+      const pnl = Number(p.totals.totalPnl);
+      $('pnl').textContent = (pnl >= 0 ? '+' : '') + usd(p.totals.totalPnl) +
+        '  (' + (p.totals.totalReturnBps / 100).toFixed(2) + '%)';
+      $('pnl').className = 'v ' + (pnl >= 0 ? 'up' : 'down');
+      state.portfolio = p;
+      renderTab();
+    } catch (error) {
+      if (error.status === 401) logout();
+    }
+  }
+
+  async function renderTab() {
+    if (!state.token) return;
+    const host = $('tabBody');
+    try {
+      if (state.tab === 'orders') {
+        const orders = await call('GET', '/orders?limit=25');
+        host.innerHTML = orders.length ? tableOf(
+          ['Time', 'Symbol', 'Side', 'Type', 'Filled', 'Price', 'Status', ''],
+          orders.map((o) => [
+            new Date(o.createdAt).toLocaleTimeString(),
+            o.symbol, o.side, o.type,
+            fmt(o.filledQuantity, 5) + ' / ' + fmt(o.quantity, 5),
+            Number(o.filledQuantity) > 0 ? usd(o.averageFillPrice) : (o.limitPrice ? usd(o.limitPrice) : '—'),
+            '<span class="pill ' + o.status + '">' + o.status.replace('_', ' ') + '</span>',
+            ['OPEN', 'PARTIALLY_FILLED'].includes(o.status)
+              ? '<button class="link" data-cancel="' + o.id + '">Cancel</button>' : '',
+          ])) : '<div class="empty">No orders yet.</div>';
+        host.querySelectorAll('[data-cancel]').forEach((b) => {
+          b.onclick = async () => {
+            try { await call('DELETE', '/orders/' + b.dataset.cancel); say('Order cancelled.', 'ok'); refreshAccount(); }
+            catch (error) { say(error.message, 'err'); }
+          };
+        });
+      } else if (state.tab === 'holdings') {
+        const holdings = state.portfolio?.holdings || [];
+        host.innerHTML = holdings.length ? tableOf(
+          ['Symbol', 'Qty', 'Avg cost', 'Mark', 'Value', 'Unrealised', 'Realised'],
+          holdings.map((h) => [
+            h.symbol, fmt(h.quantity, 5), usd(h.averageCost), usd(h.markPrice), usd(h.marketValue),
+            '<span class="' + (Number(h.unrealizedPnl) >= 0 ? 'up' : 'down') + '">' + usd(h.unrealizedPnl) +
+              ' (' + (h.unrealizedPnlBps / 100).toFixed(2) + '%)</span>',
+            '<span class="' + (Number(h.realizedPnl) >= 0 ? 'up' : 'down') + '">' + usd(h.realizedPnl) + '</span>',
+          ])) : '<div class="empty">No holdings yet.</div>';
+      } else {
+        const trades = await call('GET', '/orders/trades?limit=25');
+        host.innerHTML = trades.length ? tableOf(
+          ['Time', 'Symbol', 'Side', 'Qty', 'Price', 'Fee', 'Counterparty', 'Position after'],
+          trades.map((t) => [
+            new Date(t.at).toLocaleTimeString(), t.symbol,
+            '<span class="' + (t.side === 'BUY' ? 'up' : 'down') + '">' + t.side + '</span>',
+            fmt(t.quantity, 5), usd(t.price), usd(t.fee),
+            '<span class="pill">' + t.counterpartyType + '</span>', fmt(t.positionAfter, 5),
+          ])) : '<div class="empty">No executions yet.</div>';
+      }
+    } catch (error) {
+      host.innerHTML = '<div class="empty">' + error.message + '</div>';
+    }
+  }
+
+  function tableOf(headers, rows) {
+    return '<div class="body" style="overflow-x:auto"><table><thead><tr>' +
+      headers.map((h) => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' +
+      rows.map((r) => '<tr>' + r.map((c) => '<td>' + c + '</td>').join('') + '</tr>').join('') +
+      '</tbody></table></div>';
+  }
+
+  async function reconstruct() {
+    if (!state.token) return say('Sign in first.', 'err');
+    const raw = $('atTime').value;
+    const at = raw ? new Date(raw).toISOString() : new Date().toISOString();
+    try {
+      const p = await call('GET', '/portfolio/history?at=' + encodeURIComponent(at) + '&verify=true');
+      $('histOut').innerHTML =
+        '<div class="kv"><span class="k">Equity then</span><span class="v">' + usd(p.totals.equity) + '</span></div>' +
+        '<div class="kv"><span class="k">Cash</span><span class="v">' + usd(p.cash.total) + '</span></div>' +
+        '<div class="kv"><span class="k">Positions</span><span class="v">' + usd(p.totals.positionsValue) + '</span></div>' +
+        '<div class="kv"><span class="k">Realised P&amp;L</span><span class="v">' + usd(p.totals.realizedPnl) + '</span></div>' +
+        (p.holdings.length
+          ? '<div class="divider"></div>' + p.holdings.map((h) =>
+              '<div class="kv"><span class="k">' + h.symbol + ' × ' + fmt(h.quantity, 4) + '</span><span class="v">' +
+              usd(h.marketValue) + '</span></div>').join('')
+          : '<div class="empty">No holdings at that time.</div>') +
+        '<div class="divider"></div>' +
+        '<div class="kv"><span class="k">Ledger reconciled</span><span class="v ' +
+          (p.reconciliation.consistent ? 'up">✓ exact' : 'down">✗ drift ' + p.reconciliation.cashDrift) + '</span></div>' +
+        '<div class="kv"><span class="k muted" style="font-size:11px">' + p.reconciliation.ledgerEntriesFolded +
+          ' entries folded · ' + p.reconciliation.fillsReplayed + ' fills replayed</span><span></span></div>';
+    } catch (error) { say(error.message, 'err'); }
+  }
+
+  // -------------------------------------------------------------- websocket
+  function connect() {
+    if (state.ws) { state.ws.onclose = null; state.ws.close(); }
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/stream');
+    state.ws = ws;
+
+    ws.onopen = () => {
+      $('dot').classList.add('on');
+      $('connText').textContent = 'live';
+      const channels = ['prices', 'book:' + state.symbol];
+      if (state.token) channels.push('orders');
+      ws.send(JSON.stringify({ type: 'subscribe', channels, token: state.token }));
+    };
+    ws.onclose = () => {
+      $('dot').classList.remove('on');
+      $('connText').textContent = 'reconnecting…';
+      setTimeout(connect, 2000);
+    };
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'price') onPrice(msg.symbol, msg.price);
+      else if (msg.type === 'book') renderBook(msg);
+      else if (msg.type === 'order' || msg.type === 'fill') refreshAccount();
+      else if (msg.type === 'circuitBreaker') {
+        say('Circuit breaker ' + (msg.tripped ? 'tripped' : 'cleared') + ' on ' + msg.symbol +
+          (msg.tripped ? ' — ' + (msg.moveBps / 100).toFixed(1) + '% move' : ''), 'err');
+        loadAssets();
+      }
+    };
+  }
+
+  function subscribeBook() {
+    if (state.ws?.readyState === WebSocket.OPEN) {
+      state.ws.send(JSON.stringify({ type: 'subscribe', channels: ['book:' + state.symbol] }));
+    }
+  }
+
+  // ------------------------------------------------------------------- boot
+  async function loadAssets() {
+    const list = await call('GET', '/assets');
+    for (const asset of list) state.assets.set(asset.symbol, asset);
+    if (!state.assets.has(state.symbol)) state.symbol = list[0]?.symbol;
+    renderAssets();
+    $('bookSym').textContent = state.symbol;
+  }
+
+  document.querySelectorAll('[data-side]').forEach((b) => b.onclick = () => { state.side = b.dataset.side; syncTicket(); });
+  document.querySelectorAll('[data-type]').forEach((b) => b.onclick = () => { state.type = b.dataset.type; syncTicket(); });
+  document.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => {
+    state.tab = b.dataset.tab;
+    document.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('on', x === b));
+    renderTab();
+  });
+  ['usdAmount', 'quantity', 'limitPrice'].forEach((id) => $(id).oninput = quote);
+  $('submit').onclick = submit;
+  $('loginBtn').onclick = login;
+  $('logoutBtn').onclick = logout;
+  $('histBtn').onclick = reconstruct;
+  window.addEventListener('resize', drawChart);
+  setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
+
+  (async () => {
+    await loadAssets();
+    await loadHistory();
+    applySession();
+    syncTicket();
+    connect();
+    setInterval(refreshAccount, 15000);
+  })().catch((error) => say(error.message, 'err'));
+})();
+</script>
+</body>
+</html>
