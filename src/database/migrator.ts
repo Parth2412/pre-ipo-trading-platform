@@ -1,9 +1,17 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { Client, Pool } from 'pg';
 
-const MIGRATIONS_DIR = join(__dirname, 'migrations');
+/**
+ * Migrations live beside the compiled module (`nest-cli.json` copies the `.sql`
+ * files into `dist`). The source-tree fallback keeps `ts-node` entry points —
+ * the CLI and the test harness — working when run from the project root.
+ */
+const MIGRATIONS_DIR = [
+  join(__dirname, 'migrations'),
+  join(process.cwd(), 'src', 'database', 'migrations'),
+].find(existsSync);
 
 export interface MigrationLogger {
   log(message: string): void;
@@ -18,11 +26,17 @@ interface MigrationFile {
 }
 
 function loadMigrations(): MigrationFile[] {
+  if (!MIGRATIONS_DIR) {
+    throw new Error(
+      'No migrations directory found. Expected src/database/migrations (source) or ' +
+        'dist/database/migrations (build). Check the `assets` entry in nest-cli.json.',
+    );
+  }
   return readdirSync(MIGRATIONS_DIR)
     .filter((file) => file.endsWith('.sql'))
     .sort()
     .map((name) => {
-      const sql = readFileSync(join(MIGRATIONS_DIR, name), 'utf8');
+      const sql = readFileSync(join(MIGRATIONS_DIR as string, name), 'utf8');
       return { name, sql, checksum: createHash('sha256').update(sql).digest('hex') };
     });
 }
@@ -36,7 +50,10 @@ function loadMigrations(): MigrationFile[] {
  * own transaction and is recorded with a checksum, so an edited migration that
  * has already been applied fails loudly instead of drifting silently.
  */
-export async function runMigrations(pool: Pool, logger: MigrationLogger = noopLogger): Promise<number> {
+export async function runMigrations(
+  pool: Pool,
+  logger: MigrationLogger = noopLogger,
+): Promise<number> {
   const client = await pool.connect();
   try {
     await client.query(`
@@ -99,7 +116,10 @@ export async function resetSchema(pool: Pool, logger: MigrationLogger = noopLogg
  * Create the target database if it does not exist yet, by connecting to the
  * maintenance database on the same server. Keeps `pnpm test:e2e` a one-liner.
  */
-export async function ensureDatabaseExists(connectionUrl: string, logger: MigrationLogger = noopLogger): Promise<void> {
+export async function ensureDatabaseExists(
+  connectionUrl: string,
+  logger: MigrationLogger = noopLogger,
+): Promise<void> {
   const url = new URL(connectionUrl);
   const databaseName = decodeURIComponent(url.pathname.replace(/^\//, ''));
   if (!databaseName) throw new Error(`Connection string has no database name: ${connectionUrl}`);
