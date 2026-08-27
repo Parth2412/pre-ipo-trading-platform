@@ -19,9 +19,27 @@ interface SeedUser {
 
 /** Demo accounts. Every one uses the same password so the console is easy to try. */
 export const SEED_USERS: readonly SeedUser[] = [
-  { email: 'alice@example.com', password: 'Password123!', displayName: 'Alice', role: 'USER', depositUsd: '250000' },
-  { email: 'bob@example.com', password: 'Password123!', displayName: 'Bob', role: 'USER', depositUsd: '250000' },
-  { email: 'admin@example.com', password: 'Password123!', displayName: 'Platform Admin', role: 'ADMIN', depositUsd: '1000000' },
+  {
+    email: 'alice@example.com',
+    password: 'Password123!',
+    displayName: 'Alice',
+    role: 'USER',
+    depositUsd: '250000',
+  },
+  {
+    email: 'bob@example.com',
+    password: 'Password123!',
+    displayName: 'Bob',
+    role: 'USER',
+    depositUsd: '250000',
+  },
+  {
+    email: 'admin@example.com',
+    password: 'Password123!',
+    displayName: 'Platform Admin',
+    role: 'ADMIN',
+    depositUsd: '1000000',
+  },
 ];
 
 async function seedAssets(client: PoolClient, logger: SeedLogger): Promise<void> {

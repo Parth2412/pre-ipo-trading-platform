@@ -6,7 +6,9 @@ export class CircuitBreakerDto {
   @ApiProperty({ description: 'True while new orders on this asset are being rejected.' })
   tripped!: boolean;
 
-  @ApiProperty({ description: 'Largest peak-to-trough move observed in the rolling window, in bps.' })
+  @ApiProperty({
+    description: 'Largest peak-to-trough move observed in the rolling window, in bps.',
+  })
   moveBps!: number;
 
   @ApiProperty({ example: 1500 })
@@ -24,7 +26,8 @@ export class PriceStatsDto {
   @ApiProperty({ example: '441.230000' }) high!: string;
   @ApiProperty({ example: '405.110000' }) low!: string;
   @ApiProperty({ example: '432.900000' }) last!: string;
-  @ApiProperty({ example: 307, description: 'Change from open, in basis points.' }) changeBps!: number;
+  @ApiProperty({ example: 307, description: 'Change from open, in basis points.' })
+  changeBps!: number;
   @ApiProperty({ example: 864 }) ticks!: number;
 }
 
@@ -38,10 +41,16 @@ export class AssetDto {
   @ApiProperty({ example: '420.000000', description: 'Last simulated mark price.' })
   price!: string;
 
-  @ApiProperty({ example: '419.750000', description: 'Best bid across user and synthetic liquidity.' })
+  @ApiProperty({
+    example: '419.750000',
+    description: 'Best bid across user and synthetic liquidity.',
+  })
   bid!: string;
 
-  @ApiProperty({ example: '420.250000', description: 'Best ask across user and synthetic liquidity.' })
+  @ApiProperty({
+    example: '420.250000',
+    description: 'Best ask across user and synthetic liquidity.',
+  })
   ask!: string;
 
   @ApiProperty({ example: 12, description: 'Quoted spread in basis points.' })
@@ -50,7 +59,10 @@ export class AssetDto {
   @ApiProperty({ example: '0.010000' }) tickSize!: string;
   @ApiProperty({ example: '0.00001000' }) lotSize!: string;
   @ApiProperty({ example: '1.000000' }) minOrderNotional!: string;
-  @ApiProperty({ example: 7000, description: 'Annualised volatility used by the price process, in bps.' })
+  @ApiProperty({
+    example: 7000,
+    description: 'Annualised volatility used by the price process, in bps.',
+  })
   annualVolBps!: number;
 
   @ApiPropertyOptional({ type: PriceStatsDto, nullable: true })

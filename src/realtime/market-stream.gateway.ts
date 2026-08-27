@@ -226,7 +226,11 @@ export class MarketStreamGateway implements OnApplicationBootstrap, OnModuleDest
     if (socket.readyState !== WebSocket.OPEN) return;
     // Payloads are DTOs and should hold no bigints; the replacer is a net so a
     // future field cannot take the stream down with a serialization error.
-    socket.send(JSON.stringify(payload, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)));
+    socket.send(
+      JSON.stringify(payload, (_key, value) =>
+        typeof value === 'bigint' ? value.toString() : value,
+      ),
+    );
   }
 
   private pingAll(): void {

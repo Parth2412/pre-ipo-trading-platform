@@ -4,13 +4,7 @@ import { Executor, Transaction } from '../database/database.service';
 import { InsufficientFundsException, InsufficientSharesException } from '../common/errors';
 import { formatCash, formatQuantity } from '../common/money';
 import { asBigInt, asDate } from '../common/rows';
-import {
-  AccountBalance,
-  CASH,
-  LedgerAccount,
-  LedgerPosting,
-  PostedEntry,
-} from './ledger.types';
+import { AccountBalance, CASH, LedgerAccount, LedgerPosting, PostedEntry } from './ledger.types';
 
 interface BalanceRow {
   amount: string;
@@ -46,9 +40,7 @@ interface EntryRow {
 export class LedgerService {
   /** Apply a batch of postings atomically. Caller supplies the transaction. */
   async post(tx: Transaction, postings: readonly LedgerPosting[]): Promise<PostedEntry[]> {
-    const ordered = [...postings]
-      .filter((posting) => posting.delta !== 0n)
-      .sort(comparePostings);
+    const ordered = [...postings].filter((posting) => posting.delta !== 0n).sort(comparePostings);
 
     const results: PostedEntry[] = [];
     for (const posting of ordered) {
@@ -161,13 +153,15 @@ export class LedgerService {
       WHERE user_id = ${userId}::uuid
       ORDER BY account, COALESCE(asset_symbol, '')
     `);
-    return (result.rows as unknown as Array<BalanceRow & { account: LedgerAccount; asset_symbol: string | null }>).map(
-      (row) => ({
-        account: row.account,
-        assetSymbol: row.asset_symbol,
-        amount: asBigInt(row.amount),
-      }),
-    );
+    return (
+      result.rows as unknown as Array<
+        BalanceRow & { account: LedgerAccount; asset_symbol: string | null }
+      >
+    ).map((row) => ({
+      account: row.account,
+      assetSymbol: row.asset_symbol,
+      amount: asBigInt(row.amount),
+    }));
   }
 
   /**
@@ -210,9 +204,17 @@ export class LedgerService {
         AND created_at <= ${at.toISOString()}::timestamptz
       ORDER BY account, COALESCE(asset_symbol, ''), created_at DESC, id DESC
     `);
-    return (result.rows as unknown as Array<{ account: LedgerAccount; asset_symbol: string | null; amount: string }>).map(
-      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: asBigInt(row.amount) }),
-    );
+    return (
+      result.rows as unknown as Array<{
+        account: LedgerAccount;
+        asset_symbol: string | null;
+        amount: string;
+      }>
+    ).map((row) => ({
+      account: row.account,
+      assetSymbol: row.asset_symbol,
+      amount: asBigInt(row.amount),
+    }));
   }
 
   /** Net of every DEPOSIT and WITHDRAWAL, i.e. the capital the user actually put in. */
@@ -317,9 +319,17 @@ export class LedgerService {
       GROUP BY account, asset_symbol
       ORDER BY account, COALESCE(asset_symbol, '')
     `);
-    return (result.rows as unknown as Array<{ account: LedgerAccount; asset_symbol: string | null; amount: string }>).map(
-      (row) => ({ account: row.account, assetSymbol: row.asset_symbol, amount: asBigInt(row.amount) }),
-    );
+    return (
+      result.rows as unknown as Array<{
+        account: LedgerAccount;
+        asset_symbol: string | null;
+        amount: string;
+      }>
+    ).map((row) => ({
+      account: row.account,
+      assetSymbol: row.asset_symbol,
+      amount: asBigInt(row.amount),
+    }));
   }
 }
 

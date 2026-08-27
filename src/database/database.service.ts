@@ -77,7 +77,11 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
    * then user ids sorted ascending — which is what makes the engine
    * deadlock-free under concurrent crossing orders.
    */
-  static async acquireLock(tx: Transaction, namespace: LockNamespace, value: string): Promise<void> {
+  static async acquireLock(
+    tx: Transaction,
+    namespace: LockNamespace,
+    value: string,
+  ): Promise<void> {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(${namespace}::int, ${lockKey(value)}::int)`);
   }
 

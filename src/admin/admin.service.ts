@@ -51,7 +51,9 @@ export class AdminService {
     await this.marketData.refresh();
     this.priceEngine.setStatus(asset.symbol, status);
     this.events.publish([{ type: 'BOOK_CHANGED', symbol: asset.symbol }]);
-    this.logger.warn(`${asset.symbol} set to ${status} by ${actorUserId}: ${reason || 'no reason given'}`);
+    this.logger.warn(
+      `${asset.symbol} set to ${status} by ${actorUserId}: ${reason || 'no reason given'}`,
+    );
 
     return {
       symbol: asset.symbol,

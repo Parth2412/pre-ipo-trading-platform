@@ -229,7 +229,9 @@ describe('Portfolio reconstruction (e2e)', () => {
 
       expect(response.status).toBe(200);
       const types = response.body.map((entry: any) => entry.entryType);
-      expect(types).toEqual(expect.arrayContaining(['DEPOSIT', 'ORDER_RESERVE', 'TRADE_BUY', 'FEE']));
+      expect(types).toEqual(
+        expect.arrayContaining(['DEPOSIT', 'ORDER_RESERVE', 'TRADE_BUY', 'FEE']),
+      );
 
       // Every entry carries the running balance the point-in-time read relies on.
       for (const entry of response.body) {

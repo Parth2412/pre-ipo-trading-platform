@@ -134,9 +134,7 @@ describe('Market data and calculator (e2e)', () => {
       const large = await harness.request('POST', '/calculator', {
         body: { symbol: 'vSOL', usdAmount: '150000' },
       });
-      expect(Number(large.body.effectivePrice)).toBeGreaterThan(
-        Number(small.body.effectivePrice),
-      );
+      expect(Number(large.body.effectivePrice)).toBeGreaterThan(Number(small.body.effectivePrice));
       expect(large.body.slippageBps).toBeGreaterThan(small.body.slippageBps);
     });
 

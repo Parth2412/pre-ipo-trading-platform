@@ -1,9 +1,4 @@
-import {
-  formatCash,
-  formatPrice,
-  formatQuantity,
-  notionalOf,
-} from '../common/money';
+import { formatCash, formatPrice, formatQuantity, notionalOf } from '../common/money';
 import { Asset } from '../database/schema';
 import { BreakerState } from './circuit-breaker.service';
 import { HistoryPoint, PriceStats } from './market-data.service';
@@ -95,6 +90,9 @@ export function toPricePointDto(point: HistoryPoint): PricePointDto {
   return { price: formatPrice(point.price), at: point.at.toISOString() };
 }
 
-export function toPriceHistoryDto(symbol: string, points: readonly HistoryPoint[]): PriceHistoryDto {
+export function toPriceHistoryDto(
+  symbol: string,
+  points: readonly HistoryPoint[],
+): PriceHistoryDto {
   return { symbol, points: points.map(toPricePointDto), count: points.length };
 }

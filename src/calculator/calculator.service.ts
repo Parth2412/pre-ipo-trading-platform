@@ -48,7 +48,9 @@ export class CalculatorService {
       throw new ValidationException('`usdAmount` and `quantity` are mutually exclusive.');
     }
 
-    const limitPrice = request.limitPrice ? parsePrice(request.limitPrice, 'limitPrice') : undefined;
+    const limitPrice = request.limitPrice
+      ? parsePrice(request.limitPrice, 'limitPrice')
+      : undefined;
     if (limitPrice !== undefined && limitPrice <= 0n) {
       throw new ValidationException('`limitPrice` must be greater than zero.');
     }
@@ -79,7 +81,9 @@ export class CalculatorService {
       );
     }
     if (walk.exhausted && quantity > 0n) {
-      warnings.push('The book cannot absorb the full request; this quote covers the fillable part.');
+      warnings.push(
+        'The book cannot absorb the full request; this quote covers the fillable part.',
+      );
     }
     if (grossNotional > 0n && grossNotional < asset.minOrderNotional) {
       warnings.push(

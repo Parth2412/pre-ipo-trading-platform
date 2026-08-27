@@ -252,7 +252,11 @@ export class MarketDataService implements OnApplicationBootstrap {
    * Used by point-in-time portfolio valuation: holdings are valued at the price
    * that was actually printed then, never at today's price.
    */
-  async priceAt(symbol: string, at: Date, executor: Executor = this.database.db): Promise<bigint | undefined> {
+  async priceAt(
+    symbol: string,
+    at: Date,
+    executor: Executor = this.database.db,
+  ): Promise<bigint | undefined> {
     const result = await executor.execute(sql`
       SELECT price FROM price_ticks
       WHERE symbol = ${symbol}::text AND created_at <= ${at.toISOString()}::timestamptz
@@ -281,7 +285,10 @@ export class MarketDataService implements OnApplicationBootstrap {
     const result = await executor.execute(sql`
       SELECT DISTINCT ON (symbol) symbol, price
       FROM price_ticks
-      WHERE symbol IN (${sql.join(symbols.map((symbol) => sql`${symbol}`), sql`, `)})
+      WHERE symbol IN (${sql.join(
+        symbols.map((symbol) => sql`${symbol}`),
+        sql`, `,
+      )})
         AND created_at <= ${at.toISOString()}::timestamptz
       ORDER BY symbol, created_at DESC, id DESC
     `);

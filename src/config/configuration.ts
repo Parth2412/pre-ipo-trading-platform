@@ -80,7 +80,9 @@ function bool(name: string, fallback: boolean): boolean {
 export function loadConfiguration(): AppConfig {
   const env = (process.env.NODE_ENV ?? 'development') as AppConfig['env'];
   const databaseUrl =
-    env === 'test' ? (process.env.TEST_DATABASE_URL ?? required('DATABASE_URL')) : required('DATABASE_URL');
+    env === 'test'
+      ? (process.env.TEST_DATABASE_URL ?? required('DATABASE_URL'))
+      : required('DATABASE_URL');
 
   return {
     env,
@@ -90,7 +92,9 @@ export function loadConfiguration(): AppConfig {
       poolMax: num('DATABASE_POOL_MAX', 20),
     },
     auth: {
-      jwtSecret: process.env.JWT_SECRET ?? (env === 'production' ? required('JWT_SECRET') : 'dev-only-secret'),
+      jwtSecret:
+        process.env.JWT_SECRET ??
+        (env === 'production' ? required('JWT_SECRET') : 'dev-only-secret'),
       jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
       signupBonusUsd: num('SIGNUP_BONUS_USD', 100_000),
     },

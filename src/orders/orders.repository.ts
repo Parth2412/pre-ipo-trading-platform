@@ -236,8 +236,7 @@ export class OrdersRepository {
       LIMIT 1
     `);
     const row = result.rows[0] as unknown as
-      | { post_quantity: string; post_avg_cost: string; post_realized_pnl: string }
-      | undefined;
+      { post_quantity: string; post_avg_cost: string; post_realized_pnl: string } | undefined;
     if (!row) return EMPTY_POSITION;
     return {
       quantity: asBigInt(row.post_quantity),

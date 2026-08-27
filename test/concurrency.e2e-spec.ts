@@ -53,7 +53,9 @@ describe('Concurrency (e2e)', () => {
     );
 
     const created = responses.filter((r) => r.status === 201);
-    const inFlight = responses.filter((r) => r.body?.error?.code === 'IDEMPOTENT_REQUEST_IN_FLIGHT');
+    const inFlight = responses.filter(
+      (r) => r.body?.error?.code === 'IDEMPOTENT_REQUEST_IN_FLIGHT',
+    );
 
     // Every response is either the one order or an explicit "already running".
     expect(created.length).toBeGreaterThanOrEqual(1);
@@ -141,7 +143,9 @@ describe('Concurrency (e2e)', () => {
     );
 
     expect(responses.filter((r) => r.status === 200)).toHaveLength(1);
-    expect(responses.filter((r) => r.body?.error?.code === 'ORDER_NOT_CANCELLABLE')).toHaveLength(9);
+    expect(responses.filter((r) => r.body?.error?.code === 'ORDER_NOT_CANCELLABLE')).toHaveLength(
+      9,
+    );
 
     // The reservation came back exactly once, not ten times.
     const portfolio = await harness.request('GET', '/portfolio', { token: trader.token });

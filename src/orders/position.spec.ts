@@ -1,4 +1,10 @@
-import { formatCash, formatPrice, formatQuantity, parsePrice, parseQuantity } from '../common/money';
+import {
+  formatCash,
+  formatPrice,
+  formatQuantity,
+  parsePrice,
+  parseQuantity,
+} from '../common/money';
 import { EMPTY_POSITION, applyFill, costBasis, marketValue, unrealizedPnl } from './position';
 
 const buy = (quantity: string, price: string, fee = '0') => ({

@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ValidationException } from '../common/errors';
-import {
-  formatCash,
-  formatPrice,
-  formatQuantity,
-  notionalOf,
-} from '../common/money';
+import { formatCash, formatPrice, formatQuantity, notionalOf } from '../common/money';
 import { MarketDataService } from '../assets/market-data.service';
 import { DatabaseService, Executor } from '../database/database.service';
 import { LedgerService } from '../ledger/ledger.service';
@@ -79,7 +74,9 @@ export class PortfolioService {
   async getPortfolio(userId: string, options: SnapshotOptions = {}): Promise<PortfolioDto> {
     const asOf = options.at ?? new Date();
     if (options.at && options.at.getTime() > Date.now() + 1000) {
-      throw new ValidationException('`at` cannot be in the future.', { at: options.at.toISOString() });
+      throw new ValidationException('`at` cannot be in the future.', {
+        at: options.at.toISOString(),
+      });
     }
 
     const raw = await this.loadSnapshot(this.database.db, userId, options.at);
@@ -112,8 +109,9 @@ export class PortfolioService {
     const points = query.points ?? 24;
     const stepMs = Math.max(1, Math.floor((to.getTime() - from.getTime()) / (points - 1)));
 
-    const timestamps = Array.from({ length: points }, (_, index) =>
-      new Date(Math.min(from.getTime() + index * stepMs, to.getTime())),
+    const timestamps = Array.from(
+      { length: points },
+      (_, index) => new Date(Math.min(from.getTime() + index * stepMs, to.getTime())),
     );
 
     const series: EquityPointDto[] = [];
@@ -156,11 +154,7 @@ export class PortfolioService {
   // Reconstruction
   // ---------------------------------------------------------------------------
 
-  private async loadSnapshot(
-    executor: Executor,
-    userId: string,
-    at?: Date,
-  ): Promise<RawSnapshot> {
+  private async loadSnapshot(executor: Executor, userId: string, at?: Date): Promise<RawSnapshot> {
     const asOf = at ?? new Date();
 
     // Cash: one index seek per account when historical, one row read when live.
@@ -202,7 +196,9 @@ export class PortfolioService {
     const totals = this.totalsOf(raw);
     const holdings: HoldingDto[] = [];
 
-    for (const [symbol, state] of [...raw.positions.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    for (const [symbol, state] of [...raw.positions.entries()].sort(([a], [b]) =>
+      a.localeCompare(b),
+    )) {
       if (state.quantity === 0n && state.realizedPnl === 0n) continue;
 
       const asset = this.marketData.find(symbol);
