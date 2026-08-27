@@ -55,7 +55,7 @@ pnpm db:up          # PostgreSQL 16 on localhost:5435
 pnpm db:migrate     # create the schema
 pnpm db:seed        # list the four assets, create the demo traders
 
-pnpm start:dev
+pnpm start:dev          # PORT=3001 pnpm start:dev if 3000 is taken
 ```
 
 | What | Where |
