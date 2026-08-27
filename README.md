@@ -91,22 +91,41 @@ interesting.
 ### Try it in 30 seconds
 
 ```bash
-TOKEN=$(curl -s localhost:3000/auth/login -H 'content-type: application/json' \
+B=http://localhost:3000
+TOKEN=$(curl -s $B/auth/login -H 'content-type: application/json' \
   -d '{"email":"alice@example.com","password":"Password123!"}' | jq -r .accessToken)
 
+# Mark the moment *before* trading, so the portfolio can be rebuilt as it was.
+BEFORE=$(date -u +%Y-%m-%dT%H:%M:%S.000Z); sleep 1
+
 # What does $5,000 of Solace AI buy right now?
-curl -s localhost:3000/calculator -H 'content-type: application/json' \
+curl -s $B/calculator -H 'content-type: application/json' \
   -d '{"symbol":"vSOL","usdAmount":"5000"}' | jq
 
-# Buy it
-curl -s localhost:3000/orders -H "authorization: Bearer $TOKEN" \
+# Buy it.
+curl -s $B/orders -H "authorization: Bearer $TOKEN" \
   -H 'content-type: application/json' -H "idempotency-key: $(uuidgen)" \
   -d '{"symbol":"vSOL","side":"BUY","type":"MARKET","usdAmount":"5000"}' | jq
 
-# What did the portfolio look like a minute ago — and does the fast path agree with the raw ledger?
-curl -s "localhost:3000/portfolio/history?at=$(date -u -d '1 minute ago' +%Y-%m-%dT%H:%M:%S.000Z)&verify=true" \
-  -H "authorization: Bearer $TOKEN" | jq '.totals, .reconciliation'
+# Rebuild the portfolio as it stood before that trade, and prove the fast path
+# agrees with a full fold of the raw ledger.
+curl -s "$B/portfolio/history?at=$BEFORE&verify=true" \
+  -H "authorization: Bearer $TOKEN" | jq '{mode, totals, reconciliation}'
+
+# ...and how it looks now.
+curl -s "$B/portfolio?verify=true" -H "authorization: Bearer $TOKEN" | jq '{totals, reconciliation}'
 ```
+
+The quote and the fill agree exactly — the same share count at the same average price — because both
+walk the same book, and the synthetic ladder is stable for the life of a price tick. (The prices
+themselves differ run to run; the market is live.)
+
+The reconstruction reports `"consistent": true`: the O(log n) running-balance read and an independent
+`SUM(delta)` fold of the ledger produced identical numbers. Before the trade it shows the untouched
+$250,000 and no holdings; after it, one position and the cash to match.
+
+> A reconstruction timestamped before the account existed correctly returns an empty portfolio, so
+> pick an instant after signing in.
 
 ---
 
