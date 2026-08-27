@@ -1,6 +1,5 @@
 import { formatCash, formatPrice, formatQuantity } from '../common/money';
-import { MatchingEngineService } from './matching-engine.service';
-import { FillRecord, OrderRecord } from './order.types';
+import { FillRecord, OrderRecord, averageFillPrice, remainingQuantity } from './order.types';
 import { FillDto, OrderDto, TradeDto } from './dto/order.dto';
 
 export function toFillDto(fill: FillRecord): FillDto {
@@ -39,8 +38,8 @@ export function toOrderDto(order: OrderRecord, fills: readonly FillRecord[] = []
     limitPrice: order.limitPrice === null ? null : formatPrice(order.limitPrice),
     quantity: formatQuantity(order.quantity),
     filledQuantity: formatQuantity(order.filledQuantity),
-    remainingQuantity: formatQuantity(order.quantity - order.filledQuantity),
-    averageFillPrice: formatPrice(MatchingEngineService.averageFillPrice(order)),
+    remainingQuantity: formatQuantity(remainingQuantity(order)),
+    averageFillPrice: formatPrice(averageFillPrice(order)),
     filledNotional: formatCash(order.filledNotional),
     feesPaid: formatCash(order.feesPaid),
     reservedCash: formatCash(order.reservedCash),

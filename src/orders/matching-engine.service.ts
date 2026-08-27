@@ -14,9 +14,7 @@ import {
   formatCash,
   formatPrice,
   formatQuantity,
-  minBigInt,
   notionalOf,
-  priceOf,
 } from '../common/money';
 import { walkForNotional } from '../assets/order-book';
 import { CircuitBreakerService } from '../assets/circuit-breaker.service';
@@ -27,6 +25,7 @@ import { LedgerPosting } from '../ledger/ledger.types';
 import { LedgerService } from '../ledger/ledger.service';
 import { TradingEvent } from '../realtime/trading-events.service';
 import { LiquiditySource, buildMatchPlan, eligibleSources } from './match-plan';
+import { toFillDto, toOrderDto } from './orders.mapper';
 import { EMPTY_POSITION, PositionState, applyFill } from './position';
 import { OrdersRepository } from './orders.repository';
 import {
@@ -165,7 +164,7 @@ export class MatchingEngineService {
       rests,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: command.userId, order: finalised });
+    context.events.push({ type: 'ORDER_UPDATED', userId: command.userId, order: toOrderDto(finalised, fills) });
     context.events.push({ type: 'BOOK_CHANGED', symbol: asset.symbol });
 
     return { order: finalised, fills, events: context.events };
@@ -216,7 +215,7 @@ export class MatchingEngineService {
       order: cancelled,
       fills: [],
       events: [
-        { type: 'ORDER_UPDATED', userId, order: cancelled },
+        { type: 'ORDER_UPDATED', userId, order: toOrderDto(cancelled) },
         { type: 'BOOK_CHANGED', symbol: order.symbol },
       ],
     };
@@ -336,7 +335,7 @@ export class MatchingEngineService {
       rejectReason: null,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: order.userId, order: updated });
+    context.events.push({ type: 'ORDER_UPDATED', userId: order.userId, order: toOrderDto(updated, fills) });
     context.events.push({ type: 'BOOK_CHANGED', symbol: asset.symbol });
     return { order: updated, fills, events: context.events };
   }
@@ -734,7 +733,9 @@ export class MatchingEngineService {
       position: next,
     });
 
-    context.events.push({ type: 'FILL', userId, symbol, fill });
+    // Events carry presentation DTOs, not domain records: the realtime layer must
+    // never have to know how a scaled bigint becomes a decimal string.
+    context.events.push({ type: 'FILL', userId, symbol, fill: toFillDto(fill) });
     return fill;
   }
 
@@ -790,7 +791,7 @@ export class MatchingEngineService {
       rejectReason: null,
     });
 
-    context.events.push({ type: 'ORDER_UPDATED', userId: maker.userId, order: updated });
+    context.events.push({ type: 'ORDER_UPDATED', userId: maker.userId, order: toOrderDto(updated) });
   }
 
   /** Decide the terminal (or resting) state of the taker order and settle leftovers. */
@@ -842,13 +843,4 @@ export class MatchingEngineService {
     });
   }
 
-  /** Volume-weighted average price of an order's executions. */
-  static averageFillPrice(order: OrderRecord): bigint {
-    return order.filledQuantity > 0n ? priceOf(order.filledNotional, order.filledQuantity) : 0n;
-  }
-
-  /** Exposed for diagnostics: how much of an order is still working. */
-  static remainingQuantity(order: OrderRecord): bigint {
-    return minBigInt(order.quantity - order.filledQuantity, order.quantity);
-  }
 }
