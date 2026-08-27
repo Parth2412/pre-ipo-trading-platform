@@ -96,6 +96,11 @@ export class MarketDataService implements OnApplicationBootstrap {
     return asset;
   }
 
+  /** Latest simulated price, or undefined when no mark exists yet. */
+  currentPrice(symbol: string): bigint | undefined {
+    return this.prices.getPrice(symbol);
+  }
+
   /** Latest simulated price. Throws if the engine has not produced a mark yet. */
   requirePrice(symbol: string): bigint {
     const price = this.prices.getPrice(symbol);
