@@ -1,0 +1,36 @@
+import 'reflect-metadata';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { AppModule } from './app.module';
+import { APP_CONFIG, AppConfig } from './config/configuration';
+import { setupSwagger } from './swagger';
+
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter({ trustProxy: true, bodyLimit: 1_048_576 }),
+  );
+
+  app.enableCors({ origin: true, credentials: true });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: false },
+    }),
+  );
+  app.enableShutdownHooks();
+
+  setupSwagger(app);
+
+  const config = app.get<AppConfig>(APP_CONFIG);
+  await app.listen({ port: config.port, host: '0.0.0.0' });
+
+  const logger = new Logger('Bootstrap');
+  logger.log(`API listening on http://localhost:${config.port}`);
+  logger.log(`OpenAPI docs on http://localhost:${config.port}/docs`);
+}
+
+void bootstrap();
