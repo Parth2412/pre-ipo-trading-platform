@@ -22,6 +22,21 @@ export interface AppConfig {
     readonly tickIntervalMs: number;
     readonly randomSeed: number;
     readonly engineEnabled: boolean;
+    /**
+     * How many seconds of *market* time elapse per second of wall time.
+     *
+     * Real annualised volatility spread over real seconds produces moves far
+     * too small to be interesting in a demo — a 70%-vol name drifts by ~10 bps
+     * a minute. Compressing time (default: one wall second = one market hour)
+     * keeps the GBM mathematics honest while making the market observably live.
+     */
+    readonly timeAcceleration: number;
+    /** Synthetic book: number of price levels quoted per side. */
+    readonly bookLevels: number;
+    /** Synthetic book: target resting notional per level, in whole USD. */
+    readonly bookNotionalPerLevelUsd: number;
+    /** Synthetic book: baseline quoted spread in basis points. */
+    readonly bookSpreadBps: number;
   };
   readonly trading: {
     readonly takerFeeBps: number;
@@ -83,6 +98,10 @@ export function loadConfiguration(): AppConfig {
       tickIntervalMs: num('PRICE_TICK_INTERVAL_MS', 1000),
       randomSeed: num('PRICE_RANDOM_SEED', 20240601),
       engineEnabled: bool('PRICE_ENGINE_ENABLED', true),
+      timeAcceleration: num('MARKET_TIME_ACCELERATION', 3600),
+      bookLevels: num('BOOK_LEVELS', 10),
+      bookNotionalPerLevelUsd: num('BOOK_NOTIONAL_PER_LEVEL_USD', 25_000),
+      bookSpreadBps: num('BOOK_SPREAD_BPS', 12),
     },
     trading: {
       takerFeeBps: num('TAKER_FEE_BPS', 10),
