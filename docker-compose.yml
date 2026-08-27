@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: preipo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: preipo
+      POSTGRES_PASSWORD: preipo
+      POSTGRES_DB: preipo
+    ports:
+      - '5435:5432'
+    volumes:
+      - preipo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U preipo -d preipo']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  preipo-pgdata:
