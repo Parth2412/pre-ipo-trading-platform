@@ -7,6 +7,8 @@ import { AllExceptionsFilter } from './common/http-exception.filter';
 import { DatabaseModule } from './database/database.module';
 import { LedgerModule } from './ledger/ledger.module';
 import { AuthModule } from './auth/auth.module';
+import { AssetsModule } from './assets/assets.module';
+import { CalculatorModule } from './calculator/calculator.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HealthModule } from './health/health.module';
@@ -23,6 +25,8 @@ import { HealthModule } from './health/health.module';
     DatabaseModule,
     LedgerModule,
     AuthModule,
+    AssetsModule,
+    CalculatorModule,
     HealthModule,
   ],
   providers: [
