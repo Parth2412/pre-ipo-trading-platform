@@ -60,6 +60,12 @@ export class MarketStreamGateway implements OnApplicationBootstrap, OnModuleDest
 
     this.server = new WebSocketServer({ server: httpServer, path: '/stream' });
     this.server.on('connection', (socket) => this.onConnection(socket));
+    // The socket server shares the HTTP server and re-emits its errors. Without
+    // a handler here, an ordinary port conflict crashes the process with a
+    // WebSocket stack trace that points at the wrong subsystem entirely.
+    this.server.on('error', (error) => {
+      this.logger.error(`websocket server error: ${error.message}`);
+    });
 
     this.subscriptions.push(
       this.priceEngine.updates.subscribe((update) => {

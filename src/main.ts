@@ -34,9 +34,22 @@ async function bootstrap(): Promise<void> {
   setupSwagger(app);
 
   const config = app.get<AppConfig>(APP_CONFIG);
-  await app.listen({ port: config.port, host: '0.0.0.0' });
-
   const logger = new Logger('Bootstrap');
+
+  try {
+    await app.listen({ port: config.port, host: '0.0.0.0' });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EADDRINUSE') {
+      logger.error(
+        `Port ${config.port} is already in use. Set PORT to a free port, ` +
+          `for example: PORT=3001 pnpm start:dev`,
+      );
+      await app.close();
+      process.exit(1);
+    }
+    throw error;
+  }
+
   logger.log(`API listening on http://localhost:${config.port}`);
   logger.log(`OpenAPI docs on http://localhost:${config.port}/docs`);
 }
